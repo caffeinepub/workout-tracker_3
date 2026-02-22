@@ -2,16 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-create-a-workout-entry-form-that-allows-users-to-input-exercise-name-sets-reps-weight-duration-and-optional-notes",
-      "featureTitle": "Create a workout entry form that allows users to input exercise name, sets, reps, weight, duration, and optional notes",
+      "featureId": "feature-update-the-workout-entry-form-to-allow-users-to-select-or-specify-the-day-of-the-week-when-logging-a-workout",
+      "featureTitle": "Update the workout entry form to allow users to select or specify the day of the week when logging a workout",
       "files": [
-        "frontend/src/components/LoginButton.tsx",
-        "frontend/src/components/ProfileSetupModal.tsx",
-        "frontend/src/components/WorkoutEntryForm.tsx",
-        "frontend/src/hooks/useAddWorkout.ts",
-        "frontend/src/hooks/useGetCallerUserProfile.ts",
-        "frontend/src/hooks/useSaveCallerUserProfile.ts",
-        "frontend/src/pages/AddWorkoutPage.tsx"
+        "frontend/src/components/WorkoutEntryForm.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,17 +16,15 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-8"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-build-a-workout-history-view-that-displays-all-logged-workouts-in-reverse-chronological-order-with-date-exercise-and-key-metrics",
-      "featureTitle": "Build a workout history view that displays all logged workouts in reverse chronological order with date, exercise, and key metrics",
+      "featureId": "feature-reorganize-the-workout-history-view-to-group-workout-sessions-by-day-of-the-week-displaying-all-exercises-logged-for-each-day-together",
+      "featureTitle": "Reorganize the workout history view to group workout sessions by day of the week, displaying all exercises logged for each day together",
       "files": [
-        "frontend/src/components/WorkoutHistoryList.tsx",
-        "frontend/src/hooks/useWorkoutHistory.ts",
-        "frontend/src/pages/WorkoutHistoryPage.tsx"
+        "frontend/src/components/WorkoutHistoryList.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -43,50 +35,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-a-progression-visualization-that-shows-performance-trends-over-time-for-each-exercise-displaying-improvements-in-weight-reps-or-volume",
-      "featureTitle": "Implement a progression visualization that shows performance trends over time for each exercise, displaying improvements in weight, reps, or volume",
-      "files": [
-        "frontend/src/components/ExerciseSelector.tsx",
-        "frontend/src/components/ProgressionChart.tsx",
-        "frontend/src/pages/ProgressionPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-design-a-creative-and-coherent-visual-theme-with-a-fitness-inspired-aesthetic-using-energetic-colors-bold-typography-and-motivational-design-elements-that-remain-consistent-throughout-the-application",
-      "featureTitle": "Design a creative and coherent visual theme with a fitness-inspired aesthetic, using energetic colors, bold typography, and motivational design elements that remain consistent throughout the application",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/Layout.tsx",
-        "frontend/src/index.css",
-        "frontend/tailwind.config.js"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-6"
+        "REQ-9"
       ],
       "confidence": "high"
     }

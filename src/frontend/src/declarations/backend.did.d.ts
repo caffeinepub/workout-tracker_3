@@ -10,12 +10,20 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export type DayOfWeek = { 'tuesday' : null } |
+  { 'wednesday' : null } |
+  { 'saturday' : null } |
+  { 'thursday' : null } |
+  { 'sunday' : null } |
+  { 'friday' : null } |
+  { 'monday' : null };
 export type Time = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
 export interface WorkoutSession {
+  'day' : DayOfWeek,
   'weight' : bigint,
   'duration' : bigint,
   'date' : Time,
@@ -33,6 +41,11 @@ export interface _SERVICE {
   'getOwnWorkoutHistory' : ActorMethod<[], Array<WorkoutSession>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserWorkoutHistory' : ActorMethod<[Principal], Array<WorkoutSession>>,
+  'getWorkoutSessionsByDateRange' : ActorMethod<
+    [Time, Time],
+    Array<WorkoutSession>
+  >,
+  'getWorkoutSessionsByDay' : ActorMethod<[DayOfWeek], Array<WorkoutSession>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
 }

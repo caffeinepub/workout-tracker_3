@@ -1,14 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Build a workout tracking application that allows users to log exercises and visualize their progression over time.
+**Goal:** Organize workout tracking by day of the week with daily exercise intervals.
 
 **Planned changes:**
-- Create backend data model for workout sessions (date, exercise, sets, reps, weight, duration, notes)
-- Implement backend functions to add and retrieve workout history
-- Build workout entry form with input fields for all exercise details
-- Create workout history view displaying sessions in reverse chronological order
-- Add progression visualization showing performance trends and improvements for each exercise
-- Design fitness-inspired visual theme with energetic colors and bold typography
+- Add day-of-week field to workout session data model in backend
+- Update workout entry form to include day-of-week selector
+- Reorganize workout history view to group sessions by day of the week (Monday through Sunday)
+- Display exercises for each day with their sets and reps (e.g., "Benchpress 3x8, Deadlift 4x8")
 
-**User-visible outcome:** Users can log their workouts with detailed metrics, view their complete workout history, and track their progression over time through visual charts that show improvements in strength and performance.
+**User-visible outcome:** Users can enter workouts by selecting a day of the week and view their workout history organized by day, with all exercises for each day displayed together in a clear format.

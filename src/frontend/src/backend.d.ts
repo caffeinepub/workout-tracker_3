@@ -9,6 +9,7 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export type Time = bigint;
 export interface WorkoutSession {
+    day: DayOfWeek;
     weight: bigint;
     duration: bigint;
     date: Time;
@@ -19,6 +20,15 @@ export interface WorkoutSession {
 }
 export interface UserProfile {
     name: string;
+}
+export enum DayOfWeek {
+    tuesday = "tuesday",
+    wednesday = "wednesday",
+    saturday = "saturday",
+    thursday = "thursday",
+    sunday = "sunday",
+    friday = "friday",
+    monday = "monday"
 }
 export enum UserRole {
     admin = "admin",
@@ -33,6 +43,8 @@ export interface backendInterface {
     getOwnWorkoutHistory(): Promise<Array<WorkoutSession>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserWorkoutHistory(user: Principal): Promise<Array<WorkoutSession>>;
+    getWorkoutSessionsByDateRange(startDate: Time, endDate: Time): Promise<Array<WorkoutSession>>;
+    getWorkoutSessionsByDay(day: DayOfWeek): Promise<Array<WorkoutSession>>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
 }

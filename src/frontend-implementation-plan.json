@@ -1,139 +1,43 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Workout Tracker Frontend Implementation",
+  "title": "Organize workout tracking by day of the week with daily exercise intervals",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Create a workout entry form that allows users to input exercise name, sets, reps, weight, duration, and optional notes",
+      "id": "REQ-8",
+      "summary": "Add day-of-week selector to workout entry form",
       "acceptanceCriteria": [
-        "Form includes all required input fields",
-        "Form validates input before submission",
-        "Users receive confirmation after successful workout submission"
+        "Form includes a day-of-week selector (dropdown or button group)",
+        "Selected day is submitted along with exercise name, sets, reps, weight, duration, and notes",
+        "Form validation ensures a day is selected before submission"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/WorkoutEntryForm.tsx",
-          "operation": "create",
-          "description": "Create a workout entry form component with input fields for exercise name, sets, reps, weight, duration, and notes. Use the authorization component to ensure only authenticated users can submit workouts. Implement form validation for required fields and numeric constraints. On successful submission, call the backend's addWorkout method and display a success message. Include the dumbbell icon from frontend/public/assets/generated/dumbbell-icon.dim_128x128.png as a visual element in the form header. Verify the authorization component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useAddWorkout.ts",
-          "operation": "create",
-          "description": "Create a custom hook using React Query's useMutation to handle workout submission. The hook should call actor.addWorkout with the workout session data, invalidate the workout history query cache on success, and provide loading/error states to the form component."
-        },
-        {
-          "path": "frontend/src/pages/AddWorkoutPage.tsx",
-          "operation": "create",
-          "description": "Create a page component that renders the WorkoutEntryForm component. Include proper layout, authentication guards using the authorization component to ensure only logged-in users can access this page, and navigation elements."
-        },
-        {
-          "path": "frontend/src/components/LoginButton.tsx",
-          "operation": "create",
-          "description": "Create a login/logout button component following the authorization component's usage instructions. Use the useInternetIdentity hook to manage login state. On logout, clear the React Query cache to remove all cached application data. Display the login button in the Layout component header. Verify the authorization component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/ProfileSetupModal.tsx",
-          "operation": "create",
-          "description": "Create a modal component that prompts new users to enter their name on first login. Use the getCallerUserProfile backend method to check if a profile exists. If null, show the modal. On submission, call saveCallerUserProfile with the entered name. Implement proper loading states to prevent modal flash following the authorization component's pattern for useGetCallerUserProfile. Verify the authorization component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useGetCallerUserProfile.ts",
-          "operation": "create",
-          "description": "Create a custom hook using React Query's useQuery to fetch the current user's profile by calling actor.getCallerUserProfile. Follow the authorization component's pattern to prevent profile setup modal flash by properly handling actor loading states and returning custom isLoading and isFetched flags. Verify the authorization component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useSaveCallerUserProfile.ts",
-          "operation": "create",
-          "description": "Create a custom hook using React Query's useMutation to save the current user's profile by calling actor.saveCallerUserProfile. Invalidate the currentUserProfile query cache on success."
+          "operation": "modify",
+          "description": "Add a day-of-week selector field to the workout entry form. Include a dropdown or button group allowing users to select from Monday through Sunday. Update form state to capture the selected day. Ensure form validation requires a day selection before submission. Pass the selected DayOfWeek enum value to the addWorkout mutation alongside existing exercise data (name, sets, reps, weight, duration, notes)."
         }
       ]
     },
     {
-      "id": "REQ-4",
-      "summary": "Build a workout history view that displays all logged workouts in reverse chronological order with date, exercise, and key metrics",
+      "id": "REQ-9",
+      "summary": "Group workout history by day of the week",
       "acceptanceCriteria": [
-        "All workout sessions are displayed in a clear, organized list",
-        "Most recent workouts appear first",
-        "Key metrics (sets, reps, weight) are visible at a glance"
+        "Workout history displays sections for each day of the week (Monday through Sunday)",
+        "Each day section lists all exercises logged for that day with their sets and reps (e.g., 'Benchpress 3x8', 'Deadlift 4x8')",
+        "Days with no workouts are either hidden or shown as empty",
+        "Exercises within each day are displayed in a clear, readable format"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/WorkoutHistoryList.tsx",
-          "operation": "create",
-          "description": "Create a component that displays workout history in reverse chronological order. Fetch workout data using the getOwnWorkoutHistory backend method through a custom hook. Display each workout session with date, exercise name, sets, reps, weight, duration, and notes in a card or list format. Show loading and empty states appropriately."
+          "operation": "modify",
+          "description": "Reorganize the workout history display to group workout sessions by day of the week. Process the workout history data to group sessions by their day field (Monday through Sunday). Display each day as a section header with exercises listed below showing format like 'Benchpress 3x8, Deadlift 4x8'. Include sets and reps prominently in the display format. Handle days with no workouts by either hiding them or showing empty state. Maintain chronological order within each day section. Preserve existing loading, error, and empty states."
         },
         {
           "path": "frontend/src/hooks/useWorkoutHistory.ts",
-          "operation": "create",
-          "description": "Create a custom hook using React Query's useQuery to fetch the current user's workout history by calling actor.getOwnWorkoutHistory. Enable the query only when the actor is available and the user is authenticated. Sort the results in reverse chronological order by date."
-        },
-        {
-          "path": "frontend/src/pages/WorkoutHistoryPage.tsx",
-          "operation": "create",
-          "description": "Create a page component that renders the WorkoutHistoryList component. Include authentication guards using the authorization component to ensure only logged-in users can view their workout history. Add proper layout and navigation elements."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Implement a progression visualization that shows performance trends over time for each exercise, displaying improvements in weight, reps, or volume",
-      "acceptanceCriteria": [
-        "Users can view progression charts for individual exercises",
-        "Charts display trends over time for key metrics",
-        "Visual representation clearly shows improvement or changes in performance"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/ProgressionChart.tsx",
-          "operation": "create",
-          "description": "Create a chart component using a lightweight charting library (e.g., recharts) to visualize workout progression. Accept workout sessions filtered by exercise name as props. Display line or bar charts showing trends over time for weight, reps, sets, and calculated volume (sets × reps × weight). Include axis labels, tooltips, and a legend for clarity."
-        },
-        {
-          "path": "frontend/src/components/ExerciseSelector.tsx",
-          "operation": "create",
-          "description": "Create a dropdown or button group component that allows users to select an exercise from their workout history. Extract unique exercise names from the workout data and provide a selection interface to filter the progression chart."
-        },
-        {
-          "path": "frontend/src/pages/ProgressionPage.tsx",
-          "operation": "create",
-          "description": "Create a page component that combines the ExerciseSelector and ProgressionChart components. Use the workout history data from useWorkoutHistory hook, filter it based on the selected exercise, and pass the filtered data to the chart. Include authentication guards using the authorization component to ensure only logged-in users can view progression analytics."
-        },
-        {
-          "path": "frontend/package.json",
           "operation": "modify",
-          "description": "Add recharts as a dependency for charting functionality (e.g., \"recharts\": \"^2.10.0\")."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Design a creative and coherent visual theme with a fitness-inspired aesthetic, using energetic colors, bold typography, and motivational design elements that remain consistent throughout the application",
-      "acceptanceCriteria": [
-        "Visual theme is applied consistently across all pages and components",
-        "Color palette and typography choices support readability and user engagement",
-        "Design aesthetic aligns with fitness and performance tracking context"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Update global styles with a fitness-inspired color palette featuring energetic colors (e.g., vibrant oranges, blues, or greens for accents). Apply bold typography for headings and motivational text. Ensure consistent spacing, border-radius, and shadow styles throughout. Use the hero-fitness background image from frontend/public/assets/generated/hero-fitness.dim_1200x600.png as a hero section background or page header element."
-        },
-        {
-          "path": "frontend/tailwind.config.js",
-          "operation": "modify",
-          "description": "Extend the Tailwind theme with custom fitness-inspired colors (e.g., primary, accent, success colors), custom font families for bold typography, and custom spacing/border-radius values that align with the energetic design aesthetic. Define shadow and animation utilities to support motivational design elements."
-        },
-        {
-          "path": "frontend/src/components/Layout.tsx",
-          "operation": "create",
-          "description": "Create a layout component that wraps all pages with consistent header, navigation, and footer elements. Include the hero-fitness background image from frontend/public/assets/generated/hero-fitness.dim_1200x600.png in the header or hero section. Apply the fitness-inspired theme colors and typography. Include a navigation bar with links to workout entry, history, and progression pages. Integrate the LoginButton component from the authorization component for user authentication. Verify the authorization component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Wrap the application with the Layout component. Integrate the ProfileSetupModal to show on first login when the user has no profile. Register routes for AddWorkoutPage, WorkoutHistoryPage, and ProgressionPage using React Router. Set WorkoutHistoryPage as the default route for authenticated users. Ensure all routes are protected with authentication guards using the authorization component. Add route transitions and error boundaries as needed. Verify the authorization component's usage instructions before implementing."
+          "description": "Update the query hook to ensure workout sessions include the day field from the backend. The backend interface already returns WorkoutSession objects with a day: DayOfWeek field, so verify the data structure is properly typed and accessible to components consuming this hook."
         }
       ]
     }

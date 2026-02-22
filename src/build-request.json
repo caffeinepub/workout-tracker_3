@@ -1,132 +1,77 @@
 {
   "kind": "build_request",
-  "title": "Create workout tracking app with progression and performance metrics",
+  "title": "Organize workout tracking by day of the week with daily exercise intervals",
   "projectName": "Workout Tracker",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Create a backend data model to store workout sessions with fields for date, exercise name, sets, reps, weight, duration, and notes",
+      "id": "REQ-7",
+      "text": "Modify the backend data model to associate each workout session with a specific day of the week (Monday through Sunday)",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-4"
         ],
         "quotes": [
-          "I like to create an app where I can load and track my workout progression or performance or metrics"
+          "I need to enter the workout. Entirely in daily intervals. i.e.  Monday: Benchpress 3x8 , Deadlift 4x8 etc"
         ]
       },
       "acceptanceCriteria": [
-        "Workout sessions can be created with all required fields",
-        "Workout sessions can be retrieved by user",
-        "Data persists across canister upgrades"
+        "Workout sessions store a day-of-week field in addition to existing date field",
+        "Day of week is represented as a string or enum (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)",
+        "Backend functions accept and return day-of-week data for workout sessions"
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Implement backend functions to add new workout sessions and retrieve workout history",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-2"
-        ],
-        "quotes": [
-          "load and track my workout progression"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Users can add new workout sessions",
-        "Users can retrieve their complete workout history",
-        "Workout data is associated with the authenticated user"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Create a workout entry form that allows users to input exercise name, sets, reps, weight, duration, and optional notes",
+      "id": "REQ-8",
+      "text": "Update the workout entry form to allow users to select or specify the day of the week when logging a workout",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-4"
         ],
         "quotes": [
-          "load and track my workout progression or performance or metrics"
+          "I need to enter the workout. Entirely in daily intervals. i.e.  Monday: Benchpress 3x8 , Deadlift 4x8 etc"
         ]
       },
       "acceptanceCriteria": [
-        "Form includes all required input fields",
-        "Form validates input before submission",
-        "Users receive confirmation after successful workout submission"
+        "Form includes a day-of-week selector (dropdown or button group)",
+        "Selected day is submitted along with exercise name, sets, reps, weight, duration, and notes",
+        "Form validation ensures a day is selected before submission"
       ]
     },
     {
-      "id": "REQ-4",
-      "text": "Build a workout history view that displays all logged workouts in reverse chronological order with date, exercise, and key metrics",
+      "id": "REQ-9",
+      "text": "Reorganize the workout history view to group workout sessions by day of the week, displaying all exercises logged for each day together",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-4"
         ],
         "quotes": [
-          "track my workout progression or performance or metrics"
+          "I need to enter the workout. Entirely in daily intervals. i.e.  Monday: Benchpress 3x8 , Deadlift 4x8 etc"
         ]
       },
       "acceptanceCriteria": [
-        "All workout sessions are displayed in a clear, organized list",
-        "Most recent workouts appear first",
-        "Key metrics (sets, reps, weight) are visible at a glance"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Implement a progression visualization that shows performance trends over time for each exercise, displaying improvements in weight, reps, or volume",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-2"
-        ],
-        "quotes": [
-          "track my workout progression or performance or metrics"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Users can view progression charts for individual exercises",
-        "Charts display trends over time for key metrics",
-        "Visual representation clearly shows improvement or changes in performance"
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "Design a creative and coherent visual theme with a fitness-inspired aesthetic, using energetic colors, bold typography, and motivational design elements that remain consistent throughout the application",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Visual theme is applied consistently across all pages and components",
-        "Color palette and typography choices support readability and user engagement",
-        "Design aesthetic aligns with fitness and performance tracking context"
+        "Workout history displays sections for each day of the week (Monday through Sunday)",
+        "Each day section lists all exercises logged for that day with their sets and reps (e.g., 'Benchpress 3x8', 'Deadlift 4x8')",
+        "Days with no workouts are either hidden or shown as empty",
+        "Exercises within each day are displayed in a clear, readable format"
       ]
     }
   ],
   "constraints": [
-    "Must use Internet Identity for user authentication",
-    "All workout data must be associated with authenticated users",
-    "Backend must use single-actor Motoko architecture"
+    "Maintain compatibility with existing workout session data structure",
+    "Do not modify Internet Identity integration or authentication hooks",
+    "Keep the single-actor backend architecture"
   ],
   "nonGoals": [
-    "Social sharing features",
-    "Third-party fitness device integration",
-    "Video tutorials or exercise demonstrations",
-    "Meal planning or nutrition tracking",
-    "Real-time workout tracking during sessions"
+    "Weekly workout scheduling or calendar view",
+    "Workout templates or preset routines",
+    "Rest day tracking or recovery metrics"
   ],
   "imageRequirements": {
-    "required": [
-      "Energetic workout hero background with abstract fitness elements (hero-fitness.dim_1200x600.png)",
-      "Minimalist dumbbell icon for workout entry section (dumbbell-icon.dim_128x128.png)"
-    ],
+    "required": [],
     "edits": []
   }
 }

@@ -4,13 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAddWorkout } from '../hooks/useAddWorkout';
-import { Loader2, Dumbbell } from 'lucide-react';
+import { Loader2, Dumbbell, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { DayOfWeek } from '../backend';
 
 export default function WorkoutEntryForm() {
   const { mutate: addWorkout, isPending } = useAddWorkout();
   const [formData, setFormData] = useState({
+    day: '' as DayOfWeek | '',
     exerciseName: '',
     sets: '',
     reps: '',
@@ -23,8 +26,17 @@ export default function WorkoutEntryForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleDayChange = (value: string) => {
+    setFormData({ ...formData, day: value as DayOfWeek });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.day) {
+      toast.error('Please select a day of the week');
+      return;
+    }
 
     if (!formData.exerciseName.trim()) {
       toast.error('Please enter an exercise name');
@@ -55,6 +67,7 @@ export default function WorkoutEntryForm() {
 
     addWorkout(
       {
+        day: formData.day,
         date: BigInt(Date.now() * 1_000_000),
         exerciseName: formData.exerciseName.trim(),
         sets: BigInt(sets),
@@ -67,6 +80,7 @@ export default function WorkoutEntryForm() {
         onSuccess: () => {
           toast.success('Workout logged successfully! 💪');
           setFormData({
+            day: '',
             exerciseName: '',
             sets: '',
             reps: '',
@@ -83,6 +97,16 @@ export default function WorkoutEntryForm() {
     );
   };
 
+  const daysOfWeek = [
+    { value: DayOfWeek.monday, label: 'Monday' },
+    { value: DayOfWeek.tuesday, label: 'Tuesday' },
+    { value: DayOfWeek.wednesday, label: 'Wednesday' },
+    { value: DayOfWeek.thursday, label: 'Thursday' },
+    { value: DayOfWeek.friday, label: 'Friday' },
+    { value: DayOfWeek.saturday, label: 'Saturday' },
+    { value: DayOfWeek.sunday, label: 'Sunday' },
+  ];
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
@@ -98,6 +122,25 @@ export default function WorkoutEntryForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="day" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Day of Week *
+            </Label>
+            <Select value={formData.day} onValueChange={handleDayChange} disabled={isPending}>
+              <SelectTrigger id="day">
+                <SelectValue placeholder="Select a day" />
+              </SelectTrigger>
+              <SelectContent>
+                {daysOfWeek.map((day) => (
+                  <SelectItem key={day.value} value={day.value}>
+                    {day.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="exerciseName">Exercise Name *</Label>
             <Input

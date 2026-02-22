@@ -8,8 +8,18 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const DayOfWeek = IDL.Variant({
+  'tuesday' : IDL.Null,
+  'wednesday' : IDL.Null,
+  'saturday' : IDL.Null,
+  'thursday' : IDL.Null,
+  'sunday' : IDL.Null,
+  'friday' : IDL.Null,
+  'monday' : IDL.Null,
+});
 export const Time = IDL.Int;
 export const WorkoutSession = IDL.Record({
+  'day' : DayOfWeek,
   'weight' : IDL.Nat,
   'duration' : IDL.Nat,
   'date' : Time,
@@ -42,6 +52,16 @@ export const idlService = IDL.Service({
       [IDL.Vec(WorkoutSession)],
       ['query'],
     ),
+  'getWorkoutSessionsByDateRange' : IDL.Func(
+      [Time, Time],
+      [IDL.Vec(WorkoutSession)],
+      ['query'],
+    ),
+  'getWorkoutSessionsByDay' : IDL.Func(
+      [DayOfWeek],
+      [IDL.Vec(WorkoutSession)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
 });
@@ -49,8 +69,18 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const DayOfWeek = IDL.Variant({
+    'tuesday' : IDL.Null,
+    'wednesday' : IDL.Null,
+    'saturday' : IDL.Null,
+    'thursday' : IDL.Null,
+    'sunday' : IDL.Null,
+    'friday' : IDL.Null,
+    'monday' : IDL.Null,
+  });
   const Time = IDL.Int;
   const WorkoutSession = IDL.Record({
+    'day' : DayOfWeek,
     'weight' : IDL.Nat,
     'duration' : IDL.Nat,
     'date' : Time,
@@ -80,6 +110,16 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getUserWorkoutHistory' : IDL.Func(
         [IDL.Principal],
+        [IDL.Vec(WorkoutSession)],
+        ['query'],
+      ),
+    'getWorkoutSessionsByDateRange' : IDL.Func(
+        [Time, Time],
+        [IDL.Vec(WorkoutSession)],
+        ['query'],
+      ),
+    'getWorkoutSessionsByDay' : IDL.Func(
+        [DayOfWeek],
         [IDL.Vec(WorkoutSession)],
         ['query'],
       ),

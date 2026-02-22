@@ -1,11 +1,12 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 3,
+  "projectStateVersion": 5,
   "summary": "A workout tracking app that allows users to load and track their workout progression, performance, and metrics",
-  "architectural_notes": [],
+  "architectural_notes": [
+    "Workout data should be structured around daily intervals (day of week) rather than timestamps"
+  ],
   "known_issues": [],
   "isFixRequest": false,
-  "imageRequirements": "## Required Images\n- Energetic workout hero background with abstract fitness elements (hero-fitness.dim_1200x600.png)\n- Minimalist dumbbell icon for workout entry section (dumbbell-icon.dim_128x128.png)",
   "existing_features": [
     {
       "id": "feature-create-a-workout-entry-form-that-allows-users-to-input-exercise-name-sets-reps-weight-duration-and-optional-notes",
@@ -36,6 +37,22 @@
       "title": "Design a creative and coherent visual theme with a fitness-inspired aesthetic, using energetic colors, bold typography, and motivational design elements that remain consistent throughout the application",
       "reqIds": [
         "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-workout-entry-form-to-allow-users-to-select-or-specify-the-day-of-the-week-when-logging-a-workout",
+      "title": "Update the workout entry form to allow users to select or specify the day of the week when logging a workout",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-reorganize-the-workout-history-view-to-group-workout-sessions-by-day-of-the-week-displaying-all-exercises-logged-for-each-day-together",
+      "title": "Reorganize the workout history view to group workout sessions by day of the week, displaying all exercises logged for each day together",
+      "reqIds": [
+        "REQ-9"
       ],
       "version": 1
     }
@@ -72,6 +89,20 @@
       "summary": "Implement backend functions to add new workout sessions and retrieve workout history",
       "reqIds": [
         "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Organize workout entries by day of the week with exercises grouped under each day (e.g., Monday: Benchpress 3x8, Deadlift 4x8)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Modify the backend data model to associate each workout session with a specific day of the week (Monday through Sunday)",
+      "reqIds": [
+        "REQ-7"
       ],
       "status": "pending"
     }
