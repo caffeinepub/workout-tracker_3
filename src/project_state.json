@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "A workout tracking app that allows users to load and track their workout progression, performance, and metrics",
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
+  "imageRequirements": "## Required Images\n- Energetic workout hero background with abstract fitness elements (hero-fitness.dim_1200x600.png)\n- Minimalist dumbbell icon for workout entry section (dumbbell-icon.dim_128x128.png)",
+  "existing_features": [
+    {
+      "id": "feature-create-a-workout-entry-form-that-allows-users-to-input-exercise-name-sets-reps-weight-duration-and-optional-notes",
+      "title": "Create a workout entry form that allows users to input exercise name, sets, reps, weight, duration, and optional notes",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-workout-history-view-that-displays-all-logged-workouts-in-reverse-chronological-order-with-date-exercise-and-key-metrics",
+      "title": "Build a workout history view that displays all logged workouts in reverse chronological order with date, exercise, and key metrics",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-progression-visualization-that-shows-performance-trends-over-time-for-each-exercise-displaying-improvements-in-weight-reps-or-volume",
+      "title": "Implement a progression visualization that shows performance trends over time for each exercise, displaying improvements in weight, reps, or volume",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-design-a-creative-and-coherent-visual-theme-with-a-fitness-inspired-aesthetic-using-energetic-colors-bold-typography-and-motivational-design-elements-that-remain-consistent-throughout-the-application",
+      "title": "Design a creative and coherent visual theme with a fitness-inspired aesthetic, using energetic colors, bold typography, and motivational design elements that remain consistent throughout the application",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Load workout data",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Track workout progression",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Track workout performance metrics",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Create a backend data model to store workout sessions with fields for date, exercise name, sets, reps, weight, duration, and notes",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Implement backend functions to add new workout sessions and retrieve workout history",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Workout Tracker",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

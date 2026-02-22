@@ -1,0 +1,132 @@
+{
+  "kind": "build_request",
+  "title": "Create workout tracking app with progression and performance metrics",
+  "projectName": "Workout Tracker",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Create a backend data model to store workout sessions with fields for date, exercise name, sets, reps, weight, duration, and notes",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "I like to create an app where I can load and track my workout progression or performance or metrics"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Workout sessions can be created with all required fields",
+        "Workout sessions can be retrieved by user",
+        "Data persists across canister upgrades"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement backend functions to add new workout sessions and retrieve workout history",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "load and track my workout progression"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Users can add new workout sessions",
+        "Users can retrieve their complete workout history",
+        "Workout data is associated with the authenticated user"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Create a workout entry form that allows users to input exercise name, sets, reps, weight, duration, and optional notes",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "load and track my workout progression or performance or metrics"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Form includes all required input fields",
+        "Form validates input before submission",
+        "Users receive confirmation after successful workout submission"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Build a workout history view that displays all logged workouts in reverse chronological order with date, exercise, and key metrics",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "track my workout progression or performance or metrics"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All workout sessions are displayed in a clear, organized list",
+        "Most recent workouts appear first",
+        "Key metrics (sets, reps, weight) are visible at a glance"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Implement a progression visualization that shows performance trends over time for each exercise, displaying improvements in weight, reps, or volume",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "track my workout progression or performance or metrics"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Users can view progression charts for individual exercises",
+        "Charts display trends over time for key metrics",
+        "Visual representation clearly shows improvement or changes in performance"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Design a creative and coherent visual theme with a fitness-inspired aesthetic, using energetic colors, bold typography, and motivational design elements that remain consistent throughout the application",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Visual theme is applied consistently across all pages and components",
+        "Color palette and typography choices support readability and user engagement",
+        "Design aesthetic aligns with fitness and performance tracking context"
+      ]
+    }
+  ],
+  "constraints": [
+    "Must use Internet Identity for user authentication",
+    "All workout data must be associated with authenticated users",
+    "Backend must use single-actor Motoko architecture"
+  ],
+  "nonGoals": [
+    "Social sharing features",
+    "Third-party fitness device integration",
+    "Video tutorials or exercise demonstrations",
+    "Meal planning or nutrition tracking",
+    "Real-time workout tracking during sessions"
+  ],
+  "imageRequirements": {
+    "required": [
+      "Energetic workout hero background with abstract fitness elements (hero-fitness.dim_1200x600.png)",
+      "Minimalist dumbbell icon for workout entry section (dumbbell-icon.dim_128x128.png)"
+    ],
+    "edits": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "frontend/src/App.tsx": "Main application component with TanStack Router setup, theme provider, and three routes (history, add workout, progression) with profile setup modal integration.",
+  "frontend/src/components/Layout.tsx": "Layout wrapper component with fitness-themed header featuring hero background image, navigation menu for authenticated users, and footer with caffeine.ai attribution (fixed conflicting Tailwind classes).",
+  "frontend/src/components/LoginButton.tsx": "Authentication button component that handles login/logout with Internet Identity, clears query cache on logout, and displays appropriate loading states.",
+  "frontend/src/components/ProfileSetupModal.tsx": "Modal dialog that prompts new users to enter their name on first login, with proper loading state handling to prevent modal flash.",
+  "frontend/src/components/WorkoutEntryForm.tsx": "Form component for logging workouts with fields for exercise name, sets, reps, weight, duration, and notes, with validation and success feedback.",
+  "frontend/src/components/WorkoutHistoryList.tsx": "Displays workout history in reverse chronological order with detailed cards showing all metrics, volume calculations, and formatted dates.",
+  "frontend/src/components/ExerciseSelector.tsx": "Dropdown selector component that displays unique exercise names from workout history for filtering progression charts.",
+  "frontend/src/components/ProgressionChart.tsx": "Multi-tab chart component using Recharts to visualize workout progression with line and bar charts for volume, weight, reps, and sets over time.",
+  "frontend/src/pages/WorkoutHistoryPage.tsx": "Page component displaying workout history list with authentication guard and login prompt for unauthenticated users.",
+  "frontend/src/pages/AddWorkoutPage.tsx": "Page component for adding new workouts with authentication guard and workout entry form.",
+  "frontend/src/pages/ProgressionPage.tsx": "Page component combining exercise selector and progression charts with authentication guard and auto-selection of first exercise.",
+  "frontend/src/hooks/useQueries.ts": "Empty placeholder file as all query hooks are separated into individual files.",
+  "frontend/src/hooks/useGetCallerUserProfile.ts": "React Query hook to fetch current user profile with proper actor loading state handling to prevent modal flash.",
+  "frontend/src/hooks/useSaveCallerUserProfile.ts": "React Query mutation hook to save user profile and invalidate profile cache on success.",
+  "frontend/src/hooks/useAddWorkout.ts": "React Query mutation hook to add workout sessions and invalidate workout history cache on success.",
+  "frontend/src/hooks/useWorkoutHistory.ts": "React Query hook to fetch and sort workout history in reverse chronological order.",
+  "frontend/src/index.css": "Global styles with fitness-inspired OKLCH color system featuring orange/amber accent colors for both light and dark modes.",
+  "frontend/tailwind.config.js": "Tailwind configuration with custom fitness-themed colors, Inter font family, and custom shadow utilities."
+}
