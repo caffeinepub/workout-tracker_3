@@ -1,81 +1,100 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateWorkoutTemplate } from '../hooks/useCreateWorkoutTemplate';
+import { useActor } from '../hooks/useActor';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface CreateTemplateFormProps {
-  onCancel: () => void;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export default function CreateTemplateForm({ onCancel }: CreateTemplateFormProps) {
-  const [templateName, setTemplateName] = useState('');
+export default function CreateTemplateForm({ onSuccess, onCancel }: CreateTemplateFormProps) {
+  const [name, setName] = useState('');
   const createTemplate = useCreateWorkoutTemplate();
+  const { actor, isFetching: actorLoading } = useActor();
+
+  const isReady = !!actor && !actorLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!templateName.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       toast.error('Please enter a template name');
+      return;
+    }
+
+    if (!isReady) {
+      toast.error('Still connecting to backend, please wait a moment and try again');
       return;
     }
 
     try {
       await createTemplate.mutateAsync({
-        name: templateName.trim(),
+        name: trimmedName,
         exercises: [],
         days: [],
       });
-      toast.success('Template created successfully');
-      setTemplateName('');
-      onCancel();
-    } catch (error) {
-      console.error('Failed to create template:', error);
-      toast.error('Failed to create template');
+      toast.success(`Template "${trimmedName}" created successfully!`);
+      setName('');
+      onSuccess?.();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error occurred';
+      toast.error(message);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create New Template</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="templateName">Template Name</Label>
-            <Input
-              id="templateName"
-              type="text"
-              placeholder="e.g., Phase 1 Day 1 – Heavy Lower"
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-              disabled={createTemplate.isPending}
-              autoFocus
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="template-name">Template Name</Label>
+        <Input
+          id="template-name"
+          type="text"
+          placeholder="e.g. Push Day, Leg Day..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={createTemplate.isPending}
+          autoFocus
+        />
+      </div>
 
-          <div className="flex gap-3 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={createTemplate.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={createTemplate.isPending}
-            >
-              {createTemplate.isPending ? 'Creating...' : 'Create Template'}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      {actorLoading && (
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Connecting to backend…
+        </p>
+      )}
+
+      <div className="flex gap-2 justify-end">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={createTemplate.isPending}
+          >
+            Cancel
+          </Button>
+        )}
+        <Button
+          type="submit"
+          disabled={createTemplate.isPending || !isReady || !name.trim()}
+        >
+          {createTemplate.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Creating…
+            </>
+          ) : (
+            'Create Template'
+          )}
+        </Button>
+      </div>
+    </form>
   );
 }

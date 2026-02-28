@@ -1,34 +1,112 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-28T01:41:39.922Z",
+  "generatedAt": "2026-02-28T21:58:08.998Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 8,
+    "implemented": 6,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the 4th anchor link element from the navigation bar in the Layout component. The element is identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]. Keep all other navigation links intact.",
+        "summary": "Add a backend function to update the name of an existing workout template by its ID. The function must validate that the caller owns the template and return an error if the template is not found.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Add a backend function to delete an existing workout template by its ID. The function must validate that the caller owns the template and return an error if the template is not found.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Create a useUpdateWorkoutTemplateName mutation hook that calls the backend updateWorkoutTemplateName function and invalidates the allWorkoutTemplates query on success.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Layout.tsx"
+          "frontend/src/hooks/useUpdateWorkoutTemplateName.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/Layout.tsx"
+          "frontend/src/hooks/useUpdateWorkoutTemplateName.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Create a useDeleteWorkoutTemplate mutation hook that calls the backend deleteWorkoutTemplate function and invalidates the allWorkoutTemplates query on success.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useDeleteWorkoutTemplate.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useDeleteWorkoutTemplate.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "In the TemplateLibraryPage (on-chain templates) template list view, make each template name clickable to enter inline edit mode: clicking the name replaces it with a text input pre-filled with the current name. Pressing Enter or clicking away saves the change via the useUpdateWorkoutTemplateName hook. Pressing Escape cancels the edit. Show a loading indicator while saving and a toast on success or failure.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/TemplateLibraryPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/TemplateLibraryPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "In the TemplateLibraryPage (on-chain templates) template list view, add a Delete button next to each template. Clicking Delete opens a confirmation dialog asking the user to confirm before permanently removing the template. Confirming triggers the useDeleteWorkoutTemplate mutation. Show a toast on success or failure.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/TemplateLibraryPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/TemplateLibraryPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "In the LocalTemplatesPage (localStorage templates), make each template name support inline editing by clicking on it. Clicking the name replaces it with a text input pre-filled with the current name. Pressing Enter or clicking away saves the change via the useLocalTemplates update mutation. Pressing Escape cancels the edit.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/LocalTemplatesPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/LocalTemplatesPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-8",
+        "summary": "In the LocalTemplatesPage (localStorage templates), add a Delete button next to each template. Clicking Delete opens a confirmation dialog. Confirming permanently removes the template from localStorage via the useLocalTemplates delete mutation.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/LocalTemplatesPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/LocalTemplatesPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/Layout.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useDeleteWorkoutTemplate.ts",
+    "frontend/src/hooks/useUpdateWorkoutTemplateName.ts",
+    "frontend/src/pages/LocalTemplatesPage.tsx",
+    "frontend/src/pages/TemplateLibraryPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-4th-anchor-link-element-from-the-navigation-bar-in-the-layout-component-the-element-is-identified-by-xpath-html-1-body-1-div-1-div-1-nav-1-div-1-div-1-a-4-keep-all-other-navigation-links-intact",
-      "featureTitle": "Remove the 4th anchor link element from the navigation bar in the Layout component. The element is identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]. Keep all other navigation links intact.",
+      "featureId": "feature-create-a-useupdateworkouttemplatename-mutation-hook-that-calls-the-backend-updateworkouttemplatename-function-and-invalidates-the-allworkouttemplates-query-on-success",
+      "featureTitle": "Create a useUpdateWorkoutTemplateName mutation hook that calls the backend updateWorkoutTemplateName function and invalidates the allWorkoutTemplates query on success.",
       "files": [
-        "frontend/src/components/Layout.tsx"
+        "frontend/src/hooks/useUpdateWorkoutTemplateName.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -16,7 +16,102 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-usedeleteworkouttemplate-mutation-hook-that-calls-the-backend-deleteworkouttemplate-function-and-invalidates-the-allworkouttemplates-query-on-success",
+      "featureTitle": "Create a useDeleteWorkoutTemplate mutation hook that calls the backend deleteWorkoutTemplate function and invalidates the allWorkoutTemplates query on success.",
+      "files": [
+        "frontend/src/hooks/useDeleteWorkoutTemplate.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-in-the-templatelibrarypage-on-chain-templates-template-list-view-make-each-template-name-clickable-to-enter-inline-edit-mode-clicking-the-name-replaces-it-with-a-text-input-pre-filled-with-the-current-name-pressing-enter-or-clicking-away-saves-the-change-via-the-useupdateworkouttemplatename-hook-pressing-escape-cancels-the-edit-show-a-loading-indicator-while-saving-and-a-toast-on-success-or-failure",
+      "featureTitle": "In the TemplateLibraryPage (on-chain templates) template list view, make each template name clickable to enter inline edit mode: clicking the name replaces it with a text input pre-filled with the current name. Pressing Enter or clicking away saves the change via the useUpdateWorkoutTemplateName hook. Pressing Escape cancels the edit. Show a loading indicator while saving and a toast on success or failure.",
+      "files": [
+        "frontend/src/pages/TemplateLibraryPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-in-the-templatelibrarypage-on-chain-templates-template-list-view-add-a-delete-button-next-to-each-template-clicking-delete-opens-a-confirmation-dialog-asking-the-user-to-confirm-before-permanently-removing-the-template-confirming-triggers-the-usedeleteworkouttemplate-mutation-show-a-toast-on-success-or-failure",
+      "featureTitle": "In the TemplateLibraryPage (on-chain templates) template list view, add a Delete button next to each template. Clicking Delete opens a confirmation dialog asking the user to confirm before permanently removing the template. Confirming triggers the useDeleteWorkoutTemplate mutation. Show a toast on success or failure.",
+      "files": [
+        "frontend/src/pages/TemplateLibraryPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-in-the-localtemplatespage-localstorage-templates-make-each-template-name-support-inline-editing-by-clicking-on-it-clicking-the-name-replaces-it-with-a-text-input-pre-filled-with-the-current-name-pressing-enter-or-clicking-away-saves-the-change-via-the-uselocaltemplates-update-mutation-pressing-escape-cancels-the-edit",
+      "featureTitle": "In the LocalTemplatesPage (localStorage templates), make each template name support inline editing by clicking on it. Clicking the name replaces it with a text input pre-filled with the current name. Pressing Enter or clicking away saves the change via the useLocalTemplates update mutation. Pressing Escape cancels the edit.",
+      "files": [
+        "frontend/src/pages/LocalTemplatesPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-in-the-localtemplatespage-localstorage-templates-add-a-delete-button-next-to-each-template-clicking-delete-opens-a-confirmation-dialog-confirming-permanently-removes-the-template-from-localstorage-via-the-uselocaltemplates-delete-mutation",
+      "featureTitle": "In the LocalTemplatesPage (localStorage templates), add a Delete button next to each template. Clicking Delete opens a confirmation dialog. Confirming permanently removes the template from localStorage via the useLocalTemplates delete mutation.",
+      "files": [
+        "frontend/src/pages/LocalTemplatesPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-8"
       ],
       "confidence": "high"
     }

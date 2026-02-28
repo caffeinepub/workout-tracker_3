@@ -1,18 +1,31 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { WorkoutTemplateView } from '../backend';
+import type { WorkoutTemplateView } from '../backend';
 
 export function useCreateWorkoutTemplate() {
-  const { actor } = useActor();
+  const { actor, isFetching } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (template: WorkoutTemplateView) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.createWorkoutTemplate(template);
-      if (!result) {
-        throw new Error('Failed to create template. Please try again.');
+      if (isFetching) throw new Error('Still connecting to backend, please try again');
+      if (!actor) throw new Error('Not connected to backend. Please ensure you are logged in and try again');
+
+      let result: boolean;
+      try {
+        result = await actor.createWorkoutTemplate(template);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('Unauthorized')) {
+          throw new Error('You must be logged in to create templates');
+        }
+        throw new Error(`Backend error: ${msg}`);
       }
+
+      if (!result) {
+        throw new Error('Template was not saved. Please try again');
+      }
+
       return result;
     },
     onSuccess: () => {

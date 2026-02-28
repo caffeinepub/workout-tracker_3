@@ -3,11 +3,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, LayoutTemplate, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, LayoutTemplate, ChevronRight, Trash2, Loader2, Pencil } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 import CreateTemplateForm from '../components/CreateTemplateForm';
 import TemplateDetailView from '../components/TemplateDetailView';
 import { useGetAllWorkoutTemplates } from '../hooks/useGetAllWorkoutTemplates';
+import { useUpdateWorkoutTemplateName } from '../hooks/useUpdateWorkoutTemplateName';
+import { useDeleteWorkoutTemplate } from '../hooks/useDeleteWorkoutTemplate';
 import { UserWorkoutTemplateView } from '../backend';
 
 export default function TemplateLibraryPage() {
@@ -15,17 +29,90 @@ export default function TemplateLibraryPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<bigint | null>(null);
 
+  // Inline edit state
+  const [editingTemplateId, setEditingTemplateId] = useState<bigint | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete confirmation state
+  const [deleteTargetId, setDeleteTargetId] = useState<bigint | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState('');
+
   const { data: templates, isLoading } = useGetAllWorkoutTemplates();
+  const updateName = useUpdateWorkoutTemplateName();
+  const deleteTemplate = useDeleteWorkoutTemplate();
 
   const isAuthenticated = !!identity;
 
-  // Always derive the selected template from the latest fetched data so the
-  // detail view reflects updates (e.g. newly added exercises) without needing
-  // a separate state copy.
   const selectedTemplate: UserWorkoutTemplateView | null =
     selectedTemplateId !== null
       ? (templates?.find((t) => t.id === selectedTemplateId) ?? null)
       : null;
+
+  const startEditing = (e: React.MouseEvent, template: UserWorkoutTemplateView) => {
+    e.stopPropagation();
+    setEditingTemplateId(template.id);
+    setEditingName(template.template.name);
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const cancelEditing = () => {
+    setEditingTemplateId(null);
+    setEditingName('');
+  };
+
+  const commitEdit = async (templateId: bigint) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      cancelEditing();
+      return;
+    }
+    const original = templates?.find((t) => t.id === templateId)?.template.name;
+    if (trimmed === original) {
+      cancelEditing();
+      return;
+    }
+    try {
+      await updateName.mutateAsync({ templateId, newName: trimmed });
+      toast.success('Template name updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update template name');
+    } finally {
+      setEditingTemplateId(null);
+      setEditingName('');
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, templateId: bigint) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitEdit(templateId);
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  };
+
+  const openDeleteDialog = (e: React.MouseEvent, template: UserWorkoutTemplateView) => {
+    e.stopPropagation();
+    setDeleteTargetId(template.id);
+    setDeleteTargetName(template.template.name);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTargetId === null) return;
+    try {
+      await deleteTemplate.mutateAsync(deleteTargetId);
+      toast.success('Template deleted');
+      if (selectedTemplateId === deleteTargetId) {
+        setSelectedTemplateId(null);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete template');
+    } finally {
+      setDeleteTargetId(null);
+      setDeleteTargetName('');
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -122,20 +209,50 @@ export default function TemplateLibraryPage() {
         {/* Template list */}
         {!isLoading && templates && templates.length > 0 && (
           <div className="space-y-3">
-            {templates.map((userTemplate) => (
-              <button
-                key={userTemplate.id.toString()}
-                onClick={() => setSelectedTemplateId(userTemplate.id)}
-                className="w-full text-left"
-              >
-                <Card className="hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group">
+            {templates.map((userTemplate) => {
+              const isEditing = editingTemplateId === userTemplate.id;
+              const isUpdating = updateName.isPending && editingTemplateId === userTemplate.id;
+
+              return (
+                <Card
+                  key={userTemplate.id.toString()}
+                  className="hover:border-orange-400 hover:shadow-md transition-all group"
+                >
                   <CardContent className="flex items-center justify-between p-5">
-                    <div className="flex items-center gap-4">
-                      <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-2.5">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-2.5 shrink-0">
                         <LayoutTemplate className="h-5 w-5 text-orange-500" />
                       </div>
-                      <div>
-                        <p className="font-semibold text-base">{userTemplate.template.name}</p>
+                      <div className="flex-1 min-w-0">
+                        {isEditing ? (
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              ref={editInputRef}
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              onKeyDown={(e) => handleEditKeyDown(e, userTemplate.id)}
+                              onBlur={() => commitEdit(userTemplate.id)}
+                              className="h-8 text-sm font-semibold"
+                              disabled={isUpdating}
+                            />
+                            {isUpdating && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-semibold text-base truncate">
+                              {userTemplate.template.name}
+                            </p>
+                            <button
+                              onClick={(e) => startEditing(e, userTemplate)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                              title="Edit name"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </div>
+                        )}
                         <CardDescription className="mt-0.5">
                           {userTemplate.template.exercises.length === 0
                             ? 'No exercises added'
@@ -148,21 +265,70 @@ export default function TemplateLibraryPage() {
                         </CardDescription>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 ml-3 shrink-0">
                       {userTemplate.template.exercises.length > 0 && (
-                        <Badge variant="secondary" className="hidden sm:inline-flex">
+                        <Badge variant="secondary" className="hidden sm:inline-flex mr-1">
                           {userTemplate.template.exercises.length} exercises
                         </Badge>
                       )}
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => openDeleteDialog(e, userTemplate)}
+                        title="Delete template"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <button
+                        onClick={() => {
+                          if (!isEditing) setSelectedTemplateId(userTemplate.id);
+                        }}
+                        className="p-1"
+                        title="View template"
+                      >
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                      </button>
                     </div>
                   </CardContent>
                 </Card>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTargetId(null);
+            setDeleteTargetName('');
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete "{deleteTargetName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteTemplate.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,14 +1,46 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-28T01:41:39.918Z",
-  "summary": "The diff shows that Layout.tsx was modified and the file-summaries.txt confirms 'The \"My Templates\" navigation link has been removed.' The 4th navigation link appears to have been removed from the navigation bar. The remaining links (History, Templates, Progression for authenticated users, and Workout Log as always-visible) are still present. REQ-1 appears to be implemented.",
-  "missing_requirements": [],
-  "hallucinated_features": [],
-  "confidence": 0.8,
+  "generatedAt": "2026-02-28T21:58:08.995Z",
+  "summary": "The diff implements most of the required features: backend functions for update/delete, frontend hooks, inline editing and delete with confirmation for both TemplateLibraryPage and LocalTemplatesPage. However, the backend function names differ from the spec (actor.deleteTemplate vs deleteWorkoutTemplate, actor.updateTemplateName vs updateWorkoutTemplateName), and there are some concerns about the backend implementation details for REQ-1 and REQ-2 that cannot be fully verified due to truncation.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "A new updateWorkoutTemplateName(id, newName) function exists in the backend actor; Returns ok if the update succeeds; Returns an error variant if the template is not found or the caller is not the owner",
+      "reason": "The backend main.mo is truncated so the exact function name cannot be confirmed. The frontend hook calls actor.updateTemplateName rather than actor.updateWorkoutTemplateName, suggesting the backend function may be named differently than specified.",
+      "evidence": [
+        "backend/main.mo",
+        "frontend/src/hooks/useUpdateWorkoutTemplateName.ts"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "A new deleteWorkoutTemplate(id) function exists in the backend actor; Returns ok if the deletion succeeds; Returns an error variant if the template is not found or the caller is not the owner",
+      "reason": "The backend main.mo is truncated so the exact function name cannot be confirmed. The frontend hook calls actor.deleteTemplate rather than actor.deleteWorkoutTemplate, suggesting the backend function may be named differently than specified.",
+      "evidence": [
+        "backend/main.mo",
+        "frontend/src/hooks/useDeleteWorkoutTemplate.ts"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Backend migration module (migration.mo) was added to handle schema migration adding a 'creator' field to workout templates",
+      "reason": "The build request does not mention any migration of existing data or adding a creator field to templates. This is additional infrastructure not requested.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/Layout.tsx",
+    "frontend/src/hooks/useDeleteWorkoutTemplate.ts",
+    "frontend/src/hooks/useUpdateWorkoutTemplateName.ts",
+    "frontend/src/pages/LocalTemplatesPage.tsx",
+    "frontend/src/pages/TemplateLibraryPage.tsx",
     "project_state.json"
   ]
 }

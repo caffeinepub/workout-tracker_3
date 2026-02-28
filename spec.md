@@ -1,9 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Remove the 4th navigation link from the navigation bar.
+**Goal:** Add inline template name editing and delete-with-confirmation functionality to both the on-chain (TemplateLibraryPage) and local (LocalTemplatesPage) template lists.
 
 **Planned changes:**
-- Delete the 4th anchor link element from the navigation bar in the Layout component, leaving all other links intact.
+- Add `updateWorkoutTemplateName(id, newName)` backend function with ownership validation
+- Add `deleteWorkoutTemplate(id)` backend function with ownership validation
+- Create `useUpdateWorkoutTemplateName` mutation hook that invalidates the templates query on success
+- Create `useDeleteWorkoutTemplate` mutation hook that invalidates the templates query on success
+- In TemplateLibraryPage, make each template name clickable to enter inline edit mode (Enter/blur saves, Escape cancels) with loading indicator and success/error toasts
+- In TemplateLibraryPage, add a Delete button per template that opens a confirmation dialog before deleting, with success/error toasts
+- In LocalTemplatesPage, make each template name clickable to enter inline edit mode (Enter/blur saves, Escape cancels) using the local templates update mutation
+- In LocalTemplatesPage, add a Delete button per template that opens a confirmation dialog before removing from localStorage
 
-**User-visible outcome:** The navigation bar displays one fewer link, with all remaining links continuing to work correctly.
+**User-visible outcome:** Users can click a template name to rename it in place, and delete any template after confirming in a dialog — both for on-chain and locally stored templates.

@@ -9,7 +9,7 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export interface Exercise {
     weight: bigint;
-    duration: bigint;
+    duration: Duration;
     name: string;
     reps: bigint;
     sets: bigint;
@@ -38,6 +38,10 @@ export type PhaseId = bigint;
 export interface UserWorkoutTemplateView {
     id: bigint;
     template: WorkoutTemplateView;
+}
+export interface Duration {
+    value: bigint;
+    unit: DurationUnit;
 }
 export type LogEntryId = bigint;
 export interface Phase {
@@ -69,6 +73,10 @@ export enum DayOfWeek {
     friday = "friday",
     monday = "monday"
 }
+export enum DurationUnit {
+    minutes = "minutes",
+    seconds = "seconds"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -86,6 +94,7 @@ export interface backendInterface {
     createPhase(name: string): Promise<PhaseId>;
     createWorkoutTemplate(template: WorkoutTemplateView): Promise<boolean>;
     deletePhase(phaseId: PhaseId): Promise<boolean>;
+    deleteTemplate(templateId: bigint): Promise<string | null>;
     getAllPhases(): Promise<Array<Phase>>;
     getAllWorkoutTemplates(): Promise<Array<UserWorkoutTemplateView>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -102,4 +111,5 @@ export interface backendInterface {
     logExercise(exerciseId: ExerciseId, sets: bigint, reps: bigint, weight: bigint): Promise<LogEntryId>;
     removeExercise(exerciseId: ExerciseId): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateTemplateName(templateId: bigint, newName: string): Promise<string | null>;
 }

@@ -1,37 +1,190 @@
 {
   "kind": "build_request",
-  "title": "Delete 4th navigation link",
+  "title": "Inline template name editing and delete with confirmation",
+  "projectName": "LogMeIn Workout Tracker",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Remove the 4th anchor link element from the navigation bar in the Layout component. The element is identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]. Keep all other navigation links intact.",
-      "target": "frontend",
+      "text": "Add a backend function to update the name of an existing workout template by its ID. The function must validate that the caller owns the template and return an error if the template is not found.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-14",
+          "msg-16"
         ],
         "quotes": [
-          "delete",
-          "I prefer the first template link delete the second",
-          "Navigation"
+          "Id like the ability to edit template name",
+          "Clicking on the name."
         ]
       },
       "acceptanceCriteria": [
-        "The navigation bar contains one fewer link — specifically the 4th link is removed",
-        "All remaining navigation links continue to work correctly",
-        "The navigation layout looks correct with the remaining links"
+        "A new updateWorkoutTemplateName(id, newName) function exists in the backend actor",
+        "Returns ok if the update succeeds",
+        "Returns an error variant if the template is not found or the caller is not the owner"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Add a backend function to delete an existing workout template by its ID. The function must validate that the caller owns the template and return an error if the template is not found.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "delete created template",
+          "Yes a confirmation makes sense."
+        ]
+      },
+      "acceptanceCriteria": [
+        "A new deleteWorkoutTemplate(id) function exists in the backend actor",
+        "Returns ok if the deletion succeeds",
+        "Returns an error variant if the template is not found or the caller is not the owner"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Create a useUpdateWorkoutTemplateName mutation hook that calls the backend updateWorkoutTemplateName function and invalidates the allWorkoutTemplates query on success.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "edit template name",
+          "Clicking on the name."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Hook file exists at frontend/src/hooks/useUpdateWorkoutTemplateName.ts",
+        "Calls the backend actor's updateWorkoutTemplateName with the template ID and new name",
+        "Invalidates allWorkoutTemplates query on success"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Create a useDeleteWorkoutTemplate mutation hook that calls the backend deleteWorkoutTemplate function and invalidates the allWorkoutTemplates query on success.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "delete created template"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Hook file exists at frontend/src/hooks/useDeleteWorkoutTemplate.ts",
+        "Calls the backend actor's deleteWorkoutTemplate with the template ID",
+        "Invalidates allWorkoutTemplates query on success"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "In the TemplateLibraryPage (on-chain templates) template list view, make each template name clickable to enter inline edit mode: clicking the name replaces it with a text input pre-filled with the current name. Pressing Enter or clicking away saves the change via the useUpdateWorkoutTemplateName hook. Pressing Escape cancels the edit. Show a loading indicator while saving and a toast on success or failure.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "edit template name",
+          "Clicking on the name."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Clicking a template name in the list switches it to an editable text input",
+        "The input is pre-filled with the current template name",
+        "Pressing Enter commits the change and exits edit mode",
+        "Clicking outside (onBlur) commits the change and exits edit mode",
+        "Pressing Escape cancels the edit without saving",
+        "A loading state is shown while the mutation is in flight",
+        "A success toast is shown when the name is updated",
+        "An error toast is shown if the update fails"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "In the TemplateLibraryPage (on-chain templates) template list view, add a Delete button next to each template. Clicking Delete opens a confirmation dialog asking the user to confirm before permanently removing the template. Confirming triggers the useDeleteWorkoutTemplate mutation. Show a toast on success or failure.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "delete created template",
+          "Yes a confirmation makes sense."
+        ]
+      },
+      "acceptanceCriteria": [
+        "A Delete button is visible for each template in the list",
+        "Clicking Delete opens a confirmation dialog with a clear warning message",
+        "Confirming in the dialog calls the deleteWorkoutTemplate mutation",
+        "Cancelling the dialog closes it without deleting",
+        "A success toast is shown when the template is deleted",
+        "An error toast is shown if the deletion fails",
+        "The deleted template is removed from the list after successful deletion"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "In the LocalTemplatesPage (localStorage templates), make each template name support inline editing by clicking on it. Clicking the name replaces it with a text input pre-filled with the current name. Pressing Enter or clicking away saves the change via the useLocalTemplates update mutation. Pressing Escape cancels the edit.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "edit template name",
+          "Clicking on the name."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Clicking a local template name in the list switches it to an editable text input",
+        "The input is pre-filled with the current template name",
+        "Pressing Enter commits the change and exits edit mode",
+        "Clicking outside (onBlur) commits the change and exits edit mode",
+        "Pressing Escape cancels the edit without saving"
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "In the LocalTemplatesPage (localStorage templates), add a Delete button next to each template. Clicking Delete opens a confirmation dialog. Confirming permanently removes the template from localStorage via the useLocalTemplates delete mutation.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ],
+        "quotes": [
+          "delete created template",
+          "Yes a confirmation makes sense."
+        ]
+      },
+      "acceptanceCriteria": [
+        "A Delete button is visible for each local template in the list",
+        "Clicking Delete opens a confirmation dialog",
+        "Confirming deletes the template from localStorage",
+        "Cancelling the dialog closes it without deleting",
+        "The deleted template is removed from the list after successful deletion"
       ]
     }
   ],
   "constraints": [
-    "Only remove the 4th navigation link (a[4]); do not modify any other navigation items",
-    "Do not edit any immutable frontend paths"
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Confirmation dialogs must use existing Shadcn UI dialog/alert-dialog components"
   ],
   "nonGoals": [
-    "Modifying any other navigation links",
-    "Changing navigation styling or layout beyond the removal",
-    "Any backend changes"
+    "Editing any template fields other than the name (e.g., exercises, days)",
+    "Bulk delete of multiple templates at once",
+    "Undo functionality after deletion"
   ],
   "imageRequirements": {
     "required": [],

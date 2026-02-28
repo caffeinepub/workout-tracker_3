@@ -17,9 +17,12 @@ export type DayOfWeek = { 'tuesday' : null } |
   { 'sunday' : null } |
   { 'friday' : null } |
   { 'monday' : null };
+export interface Duration { 'value' : bigint, 'unit' : DurationUnit }
+export type DurationUnit = { 'minutes' : null } |
+  { 'seconds' : null };
 export interface Exercise {
   'weight' : bigint,
-  'duration' : bigint,
+  'duration' : Duration,
   'name' : string,
   'reps' : bigint,
   'sets' : bigint,
@@ -77,6 +80,7 @@ export interface _SERVICE {
   'createPhase' : ActorMethod<[string], PhaseId>,
   'createWorkoutTemplate' : ActorMethod<[WorkoutTemplateView], boolean>,
   'deletePhase' : ActorMethod<[PhaseId], boolean>,
+  'deleteTemplate' : ActorMethod<[bigint], [] | [string]>,
   'getAllPhases' : ActorMethod<[], Array<Phase>>,
   'getAllWorkoutTemplates' : ActorMethod<[], Array<UserWorkoutTemplateView>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -99,6 +103,7 @@ export interface _SERVICE {
   'logExercise' : ActorMethod<[ExerciseId, bigint, bigint, bigint], LogEntryId>,
   'removeExercise' : ActorMethod<[ExerciseId], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateTemplateName' : ActorMethod<[bigint, string], [] | [string]>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

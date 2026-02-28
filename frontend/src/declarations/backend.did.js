@@ -10,9 +10,17 @@ import { IDL } from '@icp-sdk/core/candid';
 
 export const PhaseId = IDL.Nat;
 export const ExerciseId = IDL.Nat;
+export const DurationUnit = IDL.Variant({
+  'minutes' : IDL.Null,
+  'seconds' : IDL.Null,
+});
+export const Duration = IDL.Record({
+  'value' : IDL.Nat,
+  'unit' : DurationUnit,
+});
 export const Exercise = IDL.Record({
   'weight' : IDL.Nat,
-  'duration' : IDL.Nat,
+  'duration' : Duration,
   'name' : IDL.Text,
   'reps' : IDL.Nat,
   'sets' : IDL.Nat,
@@ -86,6 +94,7 @@ export const idlService = IDL.Service({
   'createPhase' : IDL.Func([IDL.Text], [PhaseId], []),
   'createWorkoutTemplate' : IDL.Func([WorkoutTemplateView], [IDL.Bool], []),
   'deletePhase' : IDL.Func([PhaseId], [IDL.Bool], []),
+  'deleteTemplate' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], []),
   'getAllPhases' : IDL.Func([], [IDL.Vec(Phase)], ['query']),
   'getAllWorkoutTemplates' : IDL.Func(
       [],
@@ -138,6 +147,7 @@ export const idlService = IDL.Service({
     ),
   'removeExercise' : IDL.Func([ExerciseId], [IDL.Bool], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateTemplateName' : IDL.Func([IDL.Nat, IDL.Text], [IDL.Opt(IDL.Text)], []),
 });
 
 export const idlInitArgs = [];
@@ -145,9 +155,14 @@ export const idlInitArgs = [];
 export const idlFactory = ({ IDL }) => {
   const PhaseId = IDL.Nat;
   const ExerciseId = IDL.Nat;
+  const DurationUnit = IDL.Variant({
+    'minutes' : IDL.Null,
+    'seconds' : IDL.Null,
+  });
+  const Duration = IDL.Record({ 'value' : IDL.Nat, 'unit' : DurationUnit });
   const Exercise = IDL.Record({
     'weight' : IDL.Nat,
-    'duration' : IDL.Nat,
+    'duration' : Duration,
     'name' : IDL.Text,
     'reps' : IDL.Nat,
     'sets' : IDL.Nat,
@@ -221,6 +236,7 @@ export const idlFactory = ({ IDL }) => {
     'createPhase' : IDL.Func([IDL.Text], [PhaseId], []),
     'createWorkoutTemplate' : IDL.Func([WorkoutTemplateView], [IDL.Bool], []),
     'deletePhase' : IDL.Func([PhaseId], [IDL.Bool], []),
+    'deleteTemplate' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], []),
     'getAllPhases' : IDL.Func([], [IDL.Vec(Phase)], ['query']),
     'getAllWorkoutTemplates' : IDL.Func(
         [],
@@ -273,6 +289,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'removeExercise' : IDL.Func([ExerciseId], [IDL.Bool], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateTemplateName' : IDL.Func(
+        [IDL.Nat, IDL.Text],
+        [IDL.Opt(IDL.Text)],
+        [],
+      ),
   });
 };
 

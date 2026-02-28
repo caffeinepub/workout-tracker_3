@@ -5,7 +5,7 @@ export interface TemplateExercise {
   plannedSets: number;
   plannedReps: number;
   plannedWeight: number;
-  plannedTime: number; // minutes
+  plannedTime: number; // total seconds
 }
 
 export interface WorkoutTemplate {
@@ -28,12 +28,35 @@ function isLocalStorageAvailable(): boolean {
   }
 }
 
+/** Ensure a value is a finite, non-negative number; throw with a descriptive message if not. */
+function validateNonNegativeNumber(value: unknown, fieldName: string): number {
+  const n = Number(value);
+  if (!isFinite(n) || isNaN(n)) {
+    throw new Error(`${fieldName} must be a valid number (received: ${value})`);
+  }
+  if (n < 0) {
+    throw new Error(`${fieldName} must be a non-negative number (received: ${n})`);
+  }
+  return n;
+}
+
 export function getAllTemplates(): WorkoutTemplate[] {
   if (!isLocalStorageAvailable()) return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as WorkoutTemplate[];
+    const parsed = JSON.parse(raw) as WorkoutTemplate[];
+    // Sanitize: ensure numeric fields are valid numbers (guard against corrupted data)
+    return parsed.map((t) => ({
+      ...t,
+      exercises: (t.exercises ?? []).map((ex) => ({
+        ...ex,
+        plannedSets: isFinite(Number(ex.plannedSets)) ? Number(ex.plannedSets) : 0,
+        plannedReps: isFinite(Number(ex.plannedReps)) ? Number(ex.plannedReps) : 0,
+        plannedWeight: isFinite(Number(ex.plannedWeight)) ? Number(ex.plannedWeight) : 0,
+        plannedTime: isFinite(Number(ex.plannedTime)) ? Number(ex.plannedTime) : 0,
+      })),
+    }));
   } catch {
     return [];
   }
@@ -49,23 +72,57 @@ export function createTemplate(
   exercises: TemplateExercise[]
 ): WorkoutTemplate {
   if (!isLocalStorageAvailable()) {
-    throw new Error('localStorage is not available');
+    throw new Error('localStorage is not available in this browser');
   }
+
+  // Validate template name
+  if (!name || !name.trim()) {
+    throw new Error('Template name is required');
+  }
+
+  // Validate exercises
+  if (!Array.isArray(exercises) || exercises.length === 0) {
+    throw new Error('At least one exercise is required');
+  }
+
+  // Validate each exercise's numeric fields
+  const sanitizedExercises: TemplateExercise[] = exercises.map((ex, i) => {
+    const label = `Exercise ${i + 1} ("${ex.name || 'unnamed'}")`;
+    if (!ex.name || !ex.name.trim()) {
+      throw new Error(`Exercise ${i + 1} must have a name`);
+    }
+    return {
+      name: ex.name.trim(),
+      plannedSets: validateNonNegativeNumber(ex.plannedSets, `${label} sets`),
+      plannedReps: validateNonNegativeNumber(ex.plannedReps, `${label} reps`),
+      plannedWeight: validateNonNegativeNumber(ex.plannedWeight, `${label} weight`),
+      plannedTime: validateNonNegativeNumber(ex.plannedTime, `${label} duration`),
+    };
+  });
+
   const template: WorkoutTemplate = {
     id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    name,
+    name: name.trim(),
     createdAt: new Date().toISOString(),
-    exercises,
+    exercises: sanitizedExercises,
   };
+
   const templates = getAllTemplates();
   templates.push(template);
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
   } catch (e) {
     throw new Error('Failed to save template: storage quota may be exceeded');
   }
-  // Auto-generate a corresponding log entry
-  createLogFromTemplate(template);
+
+  // Auto-generate a corresponding log entry (non-fatal if this fails)
+  try {
+    createLogFromTemplate(template);
+  } catch {
+    // Log creation failure should not block template creation
+  }
+
   return template;
 }
 

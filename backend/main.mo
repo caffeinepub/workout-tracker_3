@@ -7,12 +7,14 @@ import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Order "mo:core/Order";
 import Principal "mo:core/Principal";
-
+import Result "mo:core/Result";
+import Migration "migration";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-
+// Apply migration function to transform actor state after upgrade
+(with migration = Migration.run)
 actor {
   type WeightUnit = {
     #lbs;
@@ -100,12 +102,22 @@ actor {
     };
   };
 
+  type Duration = {
+    value : Nat;
+    unit : DurationUnit;
+  };
+
+  type DurationUnit = {
+    #minutes;
+    #seconds;
+  };
+
   public type Exercise = {
     name : Text;
     sets : Nat;
     reps : Nat;
     weight : Nat;
-    duration : Nat;
+    duration : Duration;
     notes : Text;
   };
 
@@ -123,6 +135,7 @@ actor {
 
   public type UserWorkoutTemplatePersistent = {
     id : Nat;
+    creator : Principal;
     template : WorkoutTemplatePersistent;
   };
 
@@ -261,6 +274,7 @@ actor {
 
     let userTemplate : UserWorkoutTemplatePersistent = {
       id = nextTemplateId;
+      creator = caller;
       template = persistentTemplate;
     };
 
@@ -335,6 +349,66 @@ actor {
         userTemplate.template.days.toArray().any(func(d) { d == day });
       }
     ).map<UserWorkoutTemplatePersistent, UserWorkoutTemplateView>(toUserWorkoutTemplateView).toArray();
+  };
+
+  // New: Update Template Name
+  public shared ({ caller }) func updateTemplateName(templateId : Nat, newName : Text) : async ?Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update templates");
+    };
+
+    let templatesOpt = workoutTemplates.get(caller);
+    switch (templatesOpt) {
+      case (null) {
+        ?"No templates found for caller";
+      };
+      case (?templates) {
+        var templateFound = false;
+        let updatedTemplates = templates.map<UserWorkoutTemplatePersistent, UserWorkoutTemplatePersistent>(
+          func(tpl) {
+            if (tpl.id == templateId and tpl.creator == caller) {
+              templateFound := true;
+              {
+                tpl with template = {
+                  tpl.template with name = newName;
+                };
+              };
+            } else { tpl };
+          }
+        );
+
+        if (templateFound) {
+          workoutTemplates.add(caller, updatedTemplates);
+          null;
+        } else {
+          ?"Template not found";
+        };
+      };
+    };
+  };
+
+  // New: Delete Template
+  public shared ({ caller }) func deleteTemplate(templateId : Nat) : async ?Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete templates");
+    };
+
+    let templatesOpt = workoutTemplates.get(caller);
+    switch (templatesOpt) {
+      case (null) {
+        ?"No templates found for caller";
+      };
+      case (?templates) {
+        let filteredTemplates = templates.filter(func(tpl) { tpl.id != templateId or tpl.creator != caller });
+
+        if (filteredTemplates.size() < templates.size()) {
+          workoutTemplates.add(caller, filteredTemplates);
+          null;
+        } else {
+          ?"Template not found";
+        };
+      };
+    };
   };
 
   // Phase Management Functions

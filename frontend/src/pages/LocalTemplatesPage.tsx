@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { Plus, Trash2, ChevronRight, Dumbbell, Calendar, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,259 +11,294 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useLocalTemplates, useDeleteLocalTemplate } from '../hooks/useLocalTemplates';
-import { WorkoutTemplate } from '../utils/localStorageTemplates';
-import TemplateCreateForm from '../components/TemplateCreateForm';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useLocalTemplates, useDeleteLocalTemplate, useUpdateLocalTemplate } from '@/hooks/useLocalTemplates';
+import TemplateCreateForm from '@/components/TemplateCreateForm';
+import LocalTemplateDetailView from '@/components/LocalTemplateDetailView';
+import { Plus, Trash2, Dumbbell, Calendar, ChevronRight, Pencil } from 'lucide-react';
+
+type View = 'list' | 'create' | 'detail';
 
 export default function LocalTemplatesPage() {
-  const { data: templates = [], isLoading } = useLocalTemplates();
-  const deleteMutation = useDeleteLocalTemplate();
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<WorkoutTemplate | null>(null);
+  const [view, setView] = useState<View>('list');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
-  const handleDelete = (id: string, name: string) => {
-    deleteMutation.mutate(id, {
-      onSuccess: () => {
-        toast.success(`"${name}" deleted`);
-        if (selectedTemplate?.id === id) setSelectedTemplate(null);
-      },
-      onError: (err) => toast.error(`Failed to delete: ${err.message}`),
-    });
+  // Inline edit state
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete confirmation state
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState('');
+
+  const { data: templates = [], isLoading } = useLocalTemplates();
+  const deleteTemplate = useDeleteLocalTemplate();
+  const updateTemplate = useUpdateLocalTemplate();
+
+  const selectedTemplate = selectedTemplateId
+    ? templates.find(t => t.id === selectedTemplateId) ?? null
+    : null;
+
+  const startEditing = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    setEditingTemplateId(id);
+    setEditingName(name);
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const cancelEditing = () => {
+    setEditingTemplateId(null);
+    setEditingName('');
+  };
+
+  const commitEdit = async (id: string) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      cancelEditing();
+      return;
+    }
+    const original = templates.find(t => t.id === id)?.name;
+    if (trimmed === original) {
+      cancelEditing();
+      return;
+    }
+    try {
+      await updateTemplate.mutateAsync({ id, updates: { name: trimmed } });
+    } catch {
+      // silently ignore for local storage
+    } finally {
+      setEditingTemplateId(null);
+      setEditingName('');
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitEdit(id);
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  };
+
+  const openDeleteDialog = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    setDeleteTargetId(id);
+    setDeleteTargetName(name);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await deleteTemplate.mutateAsync(deleteTargetId);
+      toast.success('Template deleted');
+      if (selectedTemplateId === deleteTargetId) {
+        setSelectedTemplateId(null);
+        setView('list');
+      }
+    } catch {
+      toast.error('Failed to delete template');
+    } finally {
+      setDeleteTargetId(null);
+      setDeleteTargetName('');
+    }
+  };
+
+  const handleCreated = () => {
+    setView('list');
+  };
+
+  const handleSelectTemplate = (id: string) => {
+    setSelectedTemplateId(id);
+    setView('detail');
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Detail view
-  if (selectedTemplate) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedTemplate(null)}
-          >
-            <ChevronRight className="h-5 w-5 rotate-180" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold">{selectedTemplate.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              Created{' '}
-              {new Date(selectedTemplate.createdAt).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </p>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Dumbbell className="h-4 w-4 text-primary" />
-              Exercises ({selectedTemplate.exercises.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {selectedTemplate.exercises.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No exercises in this template.
-              </p>
-            ) : (
-              selectedTemplate.exercises.map((ex, idx) => (
-                <div
-                  key={idx}
-                  className="border border-border rounded-xl p-4 bg-muted/20"
-                >
-                  <p className="font-semibold mb-2">{ex.name}</p>
-                  <div className="grid grid-cols-4 gap-2 text-sm">
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Sets</p>
-                      <p className="font-bold">{ex.plannedSets}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Reps</p>
-                      <p className="font-bold">{ex.plannedReps}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Weight</p>
-                      <p className="font-bold">
-                        {ex.plannedWeight > 0 ? `${ex.plannedWeight} lbs` : '—'}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Time</p>
-                      <p className="font-bold">
-                        {ex.plannedTime > 0 ? `${ex.plannedTime}m` : '—'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="mt-4 flex justify-end">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Template
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete "{selectedTemplate.name}". This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={() => handleDelete(selectedTemplate.id, selectedTemplate.name)}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-muted-foreground">Loading templates...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Workout Templates</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create templates to plan your sessions
-          </p>
-        </div>
-        {!showCreateForm && (
-          <Button onClick={() => setShowCreateForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Template
-          </Button>
-        )}
-      </div>
-
-      {showCreateForm && (
-        <Card className="mb-6">
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      {view === 'create' && (
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base">Create New Template</CardTitle>
+            <CardTitle>New Workout Template</CardTitle>
           </CardHeader>
           <CardContent>
             <TemplateCreateForm
-              onSuccess={() => setShowCreateForm(false)}
-              onCancel={() => setShowCreateForm(false)}
+              onCancel={() => setView('list')}
+              onCreated={handleCreated}
             />
           </CardContent>
         </Card>
       )}
 
-      {templates.length === 0 && !showCreateForm ? (
-        <div className="text-center py-16 space-y-4">
-          <div className="bg-muted/40 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
-            <Dumbbell className="h-8 w-8 text-muted-foreground" />
+      {view === 'detail' && selectedTemplate && (
+        <Card>
+          <CardContent className="pt-6">
+            <LocalTemplateDetailView
+              template={selectedTemplate}
+              onBack={() => {
+                setView('list');
+                setSelectedTemplateId(null);
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {view === 'list' && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Workout Templates</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                {templates.length} template{templates.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <Button onClick={() => setView('create')}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Template
+            </Button>
           </div>
-          <div>
-            <p className="font-semibold text-lg">No templates yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create your first workout template to get started
-            </p>
-          </div>
-          <Button onClick={() => setShowCreateForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {templates.map((template) => (
-            <Card
-              key={template.id}
-              className="cursor-pointer hover:border-primary/50 transition-colors group"
-              onClick={() => setSelectedTemplate(template)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="bg-primary/10 rounded-xl p-2.5 shrink-0">
-                      <Dumbbell className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{template.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(template.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="secondary">
-                      {template.exercises.length} exercise{template.exercises.length !== 1 ? 's' : ''}
-                    </Badge>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete "{template.name}". This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(template.id, template.name);
-                            }}
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </div>
-                </div>
+
+          {templates.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Dumbbell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold text-lg mb-2">No templates yet</h3>
+                <p className="text-muted-foreground text-sm mb-6">
+                  Create your first workout template to get started.
+                </p>
+                <Button onClick={() => setView('create')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Template
+                </Button>
               </CardContent>
             </Card>
-          ))}
-        </div>
+          ) : (
+            <div className="space-y-3">
+              {templates.map(template => {
+                const isEditing = editingTemplateId === template.id;
+
+                return (
+                  <Card
+                    key={template.id}
+                    className="hover:border-primary/50 transition-colors group"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {isEditing ? (
+                              <div
+                                className="flex items-center gap-2 flex-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Input
+                                  ref={editInputRef}
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  onKeyDown={(e) => handleEditKeyDown(e, template.id)}
+                                  onBlur={() => commitEdit(template.id)}
+                                  className="h-8 text-sm font-semibold"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <h3
+                                  className="font-semibold truncate cursor-pointer"
+                                  onClick={() => handleSelectTemplate(template.id)}
+                                >
+                                  {template.name}
+                                </h3>
+                                <button
+                                  onClick={(e) => startEditing(e, template.id, template.name)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted shrink-0"
+                                  title="Edit name"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                                </button>
+                                <Badge variant="secondary" className="shrink-0">
+                                  {template.exercises.length} exercise{template.exercises.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </>
+                            )}
+                          </div>
+                          {!isEditing && (
+                            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(template.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 ml-3 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => openDeleteDialog(e, template.id, template.name)}
+                            title="Delete template"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                          <button
+                            onClick={() => {
+                              if (!isEditing) handleSelectTemplate(template.id);
+                            }}
+                            className="p-1"
+                            title="View template"
+                          >
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTargetId(null);
+            setDeleteTargetName('');
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete "{deleteTargetName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

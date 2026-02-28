@@ -7,14 +7,22 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ArrowLeft, Dumbbell, Calendar, ClipboardList, Plus, X, Loader2 } from 'lucide-react';
 import { useAddExerciseToTemplate } from '../hooks/useAddExerciseToTemplate';
+import { DurationUnit } from '../backend';
+import type { Exercise } from '../backend';
 import { toast } from 'sonner';
 
 interface TemplateDetailViewProps {
   template: UserWorkoutTemplateView;
   onBack: () => void;
-  onTemplateUpdated?: (updatedTemplates: UserWorkoutTemplateView[]) => void;
 }
 
 interface ExerciseFormState {
@@ -22,7 +30,8 @@ interface ExerciseFormState {
   sets: string;
   reps: string;
   weight: string;
-  duration: string;
+  durationValue: string;
+  durationUnit: 'minutes' | 'seconds';
   notes: string;
 }
 
@@ -31,12 +40,26 @@ const defaultFormState: ExerciseFormState = {
   sets: '',
   reps: '',
   weight: '',
-  duration: '',
+  durationValue: '',
+  durationUnit: 'minutes',
   notes: '',
 };
 
 function formatDay(day: string): string {
   return day.charAt(0).toUpperCase() + day.slice(1);
+}
+
+function formatDuration(duration: { value: bigint; unit: string }): string {
+  const val = Number(duration.value);
+  if (val === 0) return '';
+  if (duration.unit === 'seconds') return `${val}s`;
+  if (duration.unit === 'minutes') return `${val}m`;
+  return `${val}`;
+}
+
+function safeInt(val: string, fallback = 0): number {
+  const n = parseInt(val, 10);
+  return isNaN(n) || n < 0 ? fallback : n;
 }
 
 export default function TemplateDetailView({ template, onBack }: TemplateDetailViewProps) {
@@ -59,17 +82,24 @@ export default function TemplateDetailView({ template, onBack }: TemplateDetailV
       return;
     }
 
+    const durationVal = safeInt(form.durationValue, 0);
+
+    const exercise: Exercise = {
+      name: form.name.trim(),
+      sets: BigInt(safeInt(form.sets, 0)),
+      reps: BigInt(safeInt(form.reps, 0)),
+      weight: BigInt(safeInt(form.weight, 0)),
+      duration: {
+        value: BigInt(durationVal),
+        unit: form.durationUnit === 'minutes' ? DurationUnit.minutes : DurationUnit.seconds,
+      },
+      notes: form.notes.trim(),
+    };
+
     try {
       await addExerciseMutation.mutateAsync({
         templateId: template.id,
-        exercise: {
-          name: form.name.trim(),
-          sets: BigInt(form.sets ? parseInt(form.sets, 10) : 0),
-          reps: BigInt(form.reps ? parseInt(form.reps, 10) : 0),
-          weight: BigInt(form.weight ? parseInt(form.weight, 10) : 0),
-          duration: BigInt(form.duration ? parseInt(form.duration, 10) : 0),
-          notes: form.notes.trim(),
-        },
+        exercise,
       });
       toast.success(`"${form.name.trim()}" added to template!`);
       setForm(defaultFormState);
@@ -85,6 +115,8 @@ export default function TemplateDetailView({ template, onBack }: TemplateDetailV
     setFormError(null);
     setShowAddForm(false);
   }
+
+  const isPending = addExerciseMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -148,46 +180,49 @@ export default function TemplateDetailView({ template, onBack }: TemplateDetailV
 
         {exercises.length > 0 && (
           <CardContent className="pt-0 space-y-3">
-            {exercises.map((exercise, index) => (
-              <div key={index}>
-                {index > 0 && <Separator className="mb-3" />}
-                <div className="flex items-start gap-3">
-                  <div className="rounded-md bg-orange-100 dark:bg-orange-900/30 p-2 mt-0.5 shrink-0">
-                    <Dumbbell className="h-4 w-4 text-orange-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-base">{exercise.name}</p>
-                    <div className="flex flex-wrap gap-2 mt-1.5">
-                      {Number(exercise.sets) > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {exercise.sets.toString()} sets
-                        </Badge>
-                      )}
-                      {Number(exercise.reps) > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {exercise.reps.toString()} reps
-                        </Badge>
-                      )}
-                      {Number(exercise.weight) > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {exercise.weight.toString()} kg
-                        </Badge>
-                      )}
-                      {Number(exercise.duration) > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {exercise.duration.toString()} min
-                        </Badge>
+            {exercises.map((exercise, index) => {
+              const durationLabel = formatDuration(exercise.duration);
+              return (
+                <div key={index}>
+                  {index > 0 && <Separator className="mb-3" />}
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-md bg-orange-100 dark:bg-orange-900/30 p-2 mt-0.5 shrink-0">
+                      <Dumbbell className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-base">{exercise.name}</p>
+                      <div className="flex flex-wrap gap-2 mt-1.5">
+                        {Number(exercise.sets) > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            {exercise.sets.toString()} sets
+                          </Badge>
+                        )}
+                        {Number(exercise.reps) > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            {exercise.reps.toString()} reps
+                          </Badge>
+                        )}
+                        {Number(exercise.weight) > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            {exercise.weight.toString()} lbs
+                          </Badge>
+                        )}
+                        {durationLabel && (
+                          <Badge variant="outline" className="text-xs">
+                            {durationLabel}
+                          </Badge>
+                        )}
+                      </div>
+                      {exercise.notes && (
+                        <p className="text-sm text-muted-foreground mt-1.5 italic">
+                          {exercise.notes}
+                        </p>
                       )}
                     </div>
-                    {exercise.notes && (
-                      <p className="text-sm text-muted-foreground mt-1.5 italic">
-                        {exercise.notes}
-                      </p>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         )}
 
@@ -223,125 +258,132 @@ export default function TemplateDetailView({ template, onBack }: TemplateDetailV
               </div>
 
               {/* Exercise Name */}
-              <div className="space-y-1.5">
-                <Label htmlFor="exercise-name">Exercise Name *</Label>
+              <div>
+                <Label className="text-xs">Exercise Name *</Label>
                 <Input
-                  id="exercise-name"
                   placeholder="e.g. Bench Press"
                   value={form.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  disabled={addExerciseMutation.isPending}
+                  onChange={e => handleChange('name', e.target.value)}
+                  className="mt-1"
+                  disabled={isPending}
                 />
+                {formError && (
+                  <p className="text-xs text-destructive mt-1">{formError}</p>
+                )}
               </div>
 
-              {/* Sets / Reps / Weight / Duration */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="exercise-sets">Sets</Label>
+              {/* Sets / Reps / Weight */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Sets</Label>
                   <Input
-                    id="exercise-sets"
                     type="number"
-                    min="0"
+                    min={0}
                     placeholder="0"
                     value={form.sets}
-                    onChange={(e) => handleChange('sets', e.target.value)}
-                    disabled={addExerciseMutation.isPending}
+                    onChange={e => handleChange('sets', e.target.value)}
+                    className="mt-1"
+                    disabled={isPending}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="exercise-reps">Reps</Label>
+                <div>
+                  <Label className="text-xs">Reps</Label>
                   <Input
-                    id="exercise-reps"
                     type="number"
-                    min="0"
+                    min={0}
                     placeholder="0"
                     value={form.reps}
-                    onChange={(e) => handleChange('reps', e.target.value)}
-                    disabled={addExerciseMutation.isPending}
+                    onChange={e => handleChange('reps', e.target.value)}
+                    className="mt-1"
+                    disabled={isPending}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="exercise-weight">Weight (kg)</Label>
+                <div>
+                  <Label className="text-xs">Weight</Label>
                   <Input
-                    id="exercise-weight"
                     type="number"
-                    min="0"
+                    min={0}
                     placeholder="0"
                     value={form.weight}
-                    onChange={(e) => handleChange('weight', e.target.value)}
-                    disabled={addExerciseMutation.isPending}
+                    onChange={e => handleChange('weight', e.target.value)}
+                    className="mt-1"
+                    disabled={isPending}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="exercise-duration">Duration (min)</Label>
+              </div>
+
+              {/* Duration */}
+              <div>
+                <Label className="text-xs mb-1 block">Duration</Label>
+                <div className="flex gap-2">
                   <Input
-                    id="exercise-duration"
                     type="number"
-                    min="0"
+                    min={0}
                     placeholder="0"
-                    value={form.duration}
-                    onChange={(e) => handleChange('duration', e.target.value)}
-                    disabled={addExerciseMutation.isPending}
+                    value={form.durationValue}
+                    onChange={e => handleChange('durationValue', e.target.value)}
+                    className="flex-1"
+                    disabled={isPending}
                   />
+                  <Select
+                    value={form.durationUnit}
+                    onValueChange={val => handleChange('durationUnit', val)}
+                    disabled={isPending}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutes">minutes</SelectItem>
+                      <SelectItem value="seconds">seconds</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               {/* Notes */}
-              <div className="space-y-1.5">
-                <Label htmlFor="exercise-notes">Notes</Label>
+              <div>
+                <Label className="text-xs">Notes</Label>
                 <Textarea
-                  id="exercise-notes"
-                  placeholder="Optional notes about this exercise..."
+                  placeholder="Optional notes..."
                   value={form.notes}
-                  onChange={(e) => handleChange('notes', e.target.value)}
-                  disabled={addExerciseMutation.isPending}
+                  onChange={e => handleChange('notes', e.target.value)}
+                  className="mt-1 resize-none"
                   rows={2}
+                  disabled={isPending}
                 />
               </div>
 
-              {/* Validation error */}
-              {formError && (
-                <p className="text-sm text-destructive">{formError}</p>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-1">
-                <Button
-                  type="submit"
-                  disabled={addExerciseMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
-                >
-                  {addExerciseMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Adding…
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Exercise
-                    </>
-                  )}
-                </Button>
+              <div className="flex gap-3 justify-end">
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={handleCancel}
-                  disabled={addExerciseMutation.isPending}
+                  disabled={isPending}
                 >
                   Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isPending || !form.name.trim()}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Exercise'
+                  )}
                 </Button>
               </div>
             </form>
           </CardContent>
         )}
       </Card>
-
-      {/* Back button at bottom */}
-      <Button variant="outline" onClick={onBack} className="w-full">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Templates
-      </Button>
     </div>
   );
 }

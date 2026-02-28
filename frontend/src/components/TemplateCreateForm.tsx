@@ -1,71 +1,100 @@
 import { useState } from 'react';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreateLocalTemplate } from '../hooks/useLocalTemplates';
-import { TemplateExercise } from '../utils/localStorageTemplates';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useCreateLocalTemplate } from '@/hooks/useLocalTemplates';
+import { TemplateExercise } from '@/utils/localStorageTemplates';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 
-interface Props {
-  onSuccess?: () => void;
-  onCancel?: () => void;
+interface ExerciseForm {
+  name: string;
+  sets: string;
+  reps: string;
+  weight: string;
+  durationValue: string;
+  durationUnit: 'minutes' | 'seconds';
+  notes: string;
 }
 
-const emptyExercise = (): TemplateExercise => ({
+const defaultExercise = (): ExerciseForm => ({
   name: '',
-  plannedSets: 3,
-  plannedReps: 10,
-  plannedWeight: 0,
-  plannedTime: 0,
+  sets: '',
+  reps: '',
+  weight: '',
+  durationValue: '',
+  durationUnit: 'minutes',
+  notes: '',
 });
 
-export default function TemplateCreateForm({ onSuccess, onCancel }: Props) {
-  const [templateName, setTemplateName] = useState('');
-  const [exercises, setExercises] = useState<TemplateExercise[]>([emptyExercise()]);
-  const createMutation = useCreateLocalTemplate();
+interface Props {
+  onCancel: () => void;
+  onCreated?: () => void;
+}
 
-  const updateExercise = (
-    index: number,
-    field: keyof TemplateExercise,
-    value: string | number
-  ) => {
-    setExercises((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
+function safeInt(val: string, fallback = 0): number {
+  const n = parseInt(val, 10);
+  return isNaN(n) || n < 0 ? fallback : n;
+}
+
+export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
+  const [templateName, setTemplateName] = useState('');
+  const [exercises, setExercises] = useState<ExerciseForm[]>([defaultExercise()]);
+  const createTemplate = useCreateLocalTemplate();
+
+  const updateExercise = (index: number, field: keyof ExerciseForm, value: string) => {
+    setExercises(prev => prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex));
   };
 
-  const addExercise = () => setExercises((prev) => [...prev, emptyExercise()]);
+  const addExercise = () => setExercises(prev => [...prev, defaultExercise()]);
 
-  const removeExercise = (index: number) =>
-    setExercises((prev) => prev.filter((_, i) => i !== index));
+  const removeExercise = (index: number) => {
+    if (exercises.length === 1) return;
+    setExercises(prev => prev.filter((_, i) => i !== index));
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!templateName.trim()) {
+
+    const name = templateName.trim();
+    if (!name) {
       toast.error('Please enter a template name');
       return;
     }
-    const validExercises = exercises.filter((ex) => ex.name.trim());
+
+    const validExercises = exercises.filter(ex => ex.name.trim());
     if (validExercises.length === 0) {
       toast.error('Please add at least one exercise with a name');
       return;
     }
-    createMutation.mutate(
-      { name: templateName.trim(), exercises: validExercises },
-      {
-        onSuccess: () => {
-          toast.success('Template created and log generated!');
-          onSuccess?.();
-        },
-        onError: (err) => {
-          toast.error(`Failed to create template: ${err.message}`);
-        },
-      }
-    );
+
+    // Map to TemplateExercise shape (plannedSets, plannedReps, plannedWeight, plannedTime)
+    const exercisesPayload: TemplateExercise[] = validExercises.map(ex => {
+      const durationVal = safeInt(ex.durationValue, 0);
+      const plannedTime = ex.durationUnit === 'minutes' ? durationVal * 60 : durationVal;
+      return {
+        name: ex.name.trim(),
+        plannedSets: safeInt(ex.sets, 0),
+        plannedReps: safeInt(ex.reps, 0),
+        plannedWeight: safeInt(ex.weight, 0),
+        plannedTime,
+      };
+    });
+
+    try {
+      await createTemplate.mutateAsync({ name, exercises: exercisesPayload });
+      toast.success('Template created!');
+      setTemplateName('');
+      setExercises([defaultExercise()]);
+      onCreated?.();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create template';
+      toast.error(msg);
+    }
   };
+
+  const isPending = createTemplate.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -73,102 +102,117 @@ export default function TemplateCreateForm({ onSuccess, onCancel }: Props) {
         <Label htmlFor="template-name">Template Name</Label>
         <Input
           id="template-name"
-          placeholder="e.g. Push Day, Leg Day..."
           value={templateName}
-          onChange={(e) => setTemplateName(e.target.value)}
-          required
+          onChange={e => setTemplateName(e.target.value)}
+          placeholder="e.g. Push Day, Leg Day..."
+          disabled={isPending}
         />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label>Exercises</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addExercise}>
-            <Plus className="h-4 w-4 mr-1" />
+          <Label className="text-base font-semibold">Exercises</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addExercise}
+            disabled={isPending}
+          >
+            <Plus className="w-4 h-4 mr-1" />
             Add Exercise
           </Button>
         </div>
 
-        {exercises.map((ex, idx) => (
-          <div
-            key={idx}
-            className="border border-border rounded-xl p-4 space-y-3 bg-muted/30"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-muted-foreground">
-                Exercise {idx + 1}
-              </span>
+        {exercises.map((ex, index) => (
+          <div key={index} className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">Exercise {index + 1}</span>
               {exercises.length > 1 && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-destructive hover:text-destructive"
-                  onClick={() => removeExercise(idx)}
+                  onClick={() => removeExercise(index)}
+                  disabled={isPending}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               )}
             </div>
 
-            <div>
-              <Label className="text-xs">Exercise Name</Label>
+            <div className="space-y-2">
+              <Label>Exercise Name</Label>
               <Input
-                placeholder="e.g. Bench Press"
                 value={ex.name}
-                onChange={(e) => updateExercise(idx, 'name', e.target.value)}
-                className="mt-1"
+                onChange={e => updateExercise(index, 'name', e.target.value)}
+                placeholder="e.g. Bench Press"
+                disabled={isPending}
               />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <Label className="text-xs">Sets</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Sets</Label>
                 <Input
                   type="number"
-                  min={0}
-                  value={ex.plannedSets}
-                  onChange={(e) =>
-                    updateExercise(idx, 'plannedSets', Number(e.target.value))
-                  }
-                  className="mt-1"
+                  min="0"
+                  value={ex.sets}
+                  onChange={e => updateExercise(index, 'sets', e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
                 />
               </div>
-              <div>
-                <Label className="text-xs">Reps</Label>
+              <div className="space-y-2">
+                <Label>Reps</Label>
                 <Input
                   type="number"
-                  min={0}
-                  value={ex.plannedReps}
-                  onChange={(e) =>
-                    updateExercise(idx, 'plannedReps', Number(e.target.value))
-                  }
-                  className="mt-1"
+                  min="0"
+                  value={ex.reps}
+                  onChange={e => updateExercise(index, 'reps', e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
                 />
               </div>
-              <div>
-                <Label className="text-xs">Weight (lbs)</Label>
+              <div className="space-y-2">
+                <Label>Weight</Label>
                 <Input
                   type="number"
-                  min={0}
-                  value={ex.plannedWeight}
-                  onChange={(e) =>
-                    updateExercise(idx, 'plannedWeight', Number(e.target.value))
-                  }
-                  className="mt-1"
+                  min="0"
+                  value={ex.weight}
+                  onChange={e => updateExercise(index, 'weight', e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
                 />
               </div>
-              <div>
-                <Label className="text-xs">Time (min)</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <div className="flex gap-2">
                 <Input
                   type="number"
-                  min={0}
-                  value={ex.plannedTime}
-                  onChange={(e) =>
-                    updateExercise(idx, 'plannedTime', Number(e.target.value))
-                  }
-                  className="mt-1"
+                  min="0"
+                  value={ex.durationValue}
+                  onChange={e => updateExercise(index, 'durationValue', e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
+                  className="flex-1"
                 />
+                <Select
+                  value={ex.durationUnit}
+                  onValueChange={val => updateExercise(index, 'durationUnit', val)}
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">minutes</SelectItem>
+                    <SelectItem value="seconds">seconds</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -176,15 +220,21 @@ export default function TemplateCreateForm({ onSuccess, onCancel }: Props) {
       </div>
 
       <div className="flex gap-3 justify-end pt-2">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
-        <Button type="submit" disabled={createMutation.isPending}>
-          {createMutation.isPending ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isPending || !templateName.trim()}
+        >
+          {isPending ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Creating...
             </>
           ) : (

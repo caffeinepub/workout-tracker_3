@@ -1,21 +1,114 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Delete 4th navigation link",
+  "title": "Inline template name editing and delete with confirmation",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Remove the 4th anchor link element from the navigation bar in the Layout component",
+      "id": "REQ-3",
+      "summary": "Create a useUpdateWorkoutTemplateName mutation hook that calls the backend updateWorkoutTemplateName function and invalidates the allWorkoutTemplates query on success",
       "acceptanceCriteria": [
-        "The navigation bar contains one fewer link — specifically the 4th link is removed",
-        "All remaining navigation links continue to work correctly",
-        "The navigation layout looks correct with the remaining links"
+        "Hook file exists at frontend/src/hooks/useUpdateWorkoutTemplateName.ts",
+        "Calls the backend actor's updateWorkoutTemplateName with the template ID and new name",
+        "Invalidates allWorkoutTemplates query on success"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Layout.tsx",
+          "path": "frontend/src/hooks/useUpdateWorkoutTemplateName.ts",
+          "operation": "create",
+          "description": "Create a mutation hook that calls actor.updateTemplateName(templateId, newName), handles errors (returning null on success or error message on failure), invalidates the 'allWorkoutTemplates' query key on success, and shows appropriate error handling for authentication and backend failures"
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Create a useDeleteWorkoutTemplate mutation hook that calls the backend deleteWorkoutTemplate function and invalidates the allWorkoutTemplates query on success",
+      "acceptanceCriteria": [
+        "Hook file exists at frontend/src/hooks/useDeleteWorkoutTemplate.ts",
+        "Calls the backend actor's deleteWorkoutTemplate with the template ID",
+        "Invalidates allWorkoutTemplates query on success"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useDeleteWorkoutTemplate.ts",
+          "operation": "create",
+          "description": "Create a mutation hook that calls actor.deleteTemplate(templateId), handles the returned Option<string> error result (null means success, Some(error) means failure), invalidates the 'allWorkoutTemplates' query key on success, and provides detailed error handling for authentication and backend failures"
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "In the TemplateLibraryPage (on-chain templates) template list view, make each template name clickable to enter inline edit mode with save on Enter/blur and cancel on Escape",
+      "acceptanceCriteria": [
+        "Clicking a template name in the list switches it to an editable text input",
+        "The input is pre-filled with the current template name",
+        "Pressing Enter commits the change and exits edit mode",
+        "Clicking outside (onBlur) commits the change and exits edit mode",
+        "Pressing Escape cancels the edit without saving",
+        "A loading state is shown while the mutation is in flight",
+        "A success toast is shown when the name is updated",
+        "An error toast is shown if the update fails"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/TemplateLibraryPage.tsx",
           "operation": "modify",
-          "description": "Remove the 4th anchor link element from the navigation bar (identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]). Keep all other navigation links intact and ensure the remaining links continue to function correctly."
+          "description": "In the template list view section, add state to track which template ID is being edited and the current edit value. Replace the template name display with a conditional render: if editing that template, show a text input pre-filled with the name; otherwise show the name as a clickable button/span. Wire up onClick to enter edit mode, onKeyDown to handle Enter (save via useUpdateWorkoutTemplateName and exit edit mode) and Escape (cancel and exit edit mode), and onBlur to save and exit edit mode. Show a loading spinner next to the input while the mutation isPending. Use toast for success/error feedback after mutation"
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "In the TemplateLibraryPage (on-chain templates) template list view, add a Delete button with confirmation dialog next to each template",
+      "acceptanceCriteria": [
+        "A Delete button is visible for each template in the list",
+        "Clicking Delete opens a confirmation dialog with a clear warning message",
+        "Confirming in the dialog calls the deleteWorkoutTemplate mutation",
+        "Cancelling the dialog closes it without deleting",
+        "A success toast is shown when the template is deleted",
+        "An error toast is shown if the deletion fails",
+        "The deleted template is removed from the list after successful deletion"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/TemplateLibraryPage.tsx",
+          "operation": "modify",
+          "description": "In the template list view section, add a Delete button next to each template. Add state to track which template is selected for deletion. Import and use the Shadcn UI AlertDialog component (check existing usage in other files for the exact component path under frontend/src/components/ui). Wire the Delete button to open the AlertDialog with a confirmation message (e.g., 'Are you sure you want to permanently delete this template? This action cannot be undone.'). On confirm, call the useDeleteWorkoutTemplate mutation with the template ID and show a success or error toast based on the result. On cancel, close the dialog without action"
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "In the LocalTemplatesPage (localStorage templates), make each template name support inline editing with save on Enter/blur and cancel on Escape",
+      "acceptanceCriteria": [
+        "Clicking a local template name in the list switches it to an editable text input",
+        "The input is pre-filled with the current template name",
+        "Pressing Enter commits the change and exits edit mode",
+        "Clicking outside (onBlur) commits the change and exits edit mode",
+        "Pressing Escape cancels the edit without saving"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/LocalTemplatesPage.tsx",
+          "operation": "modify",
+          "description": "In the local template list view section, add state to track which template ID is being edited and the current edit value. Replace the template name display with a conditional render: if editing that template, show a text input pre-filled with the name; otherwise show the name as a clickable button/span. Wire up onClick to enter edit mode, onKeyDown to handle Enter (save via the useLocalTemplates update mutation and exit edit mode) and Escape (cancel and exit edit mode), and onBlur to save and exit edit mode. No loading state is needed for localStorage mutations"
+        }
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "summary": "In the LocalTemplatesPage (localStorage templates), add a Delete button with confirmation dialog next to each template",
+      "acceptanceCriteria": [
+        "A Delete button is visible for each local template in the list",
+        "Clicking Delete opens a confirmation dialog",
+        "Confirming deletes the template from localStorage",
+        "Cancelling the dialog closes it without deleting",
+        "The deleted template is removed from the list after successful deletion"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/LocalTemplatesPage.tsx",
+          "operation": "modify",
+          "description": "In the local template list view section, add a Delete button next to each template. Add state to track which template is selected for deletion. Import and use the Shadcn UI AlertDialog component (check existing usage in other files for the exact component path under frontend/src/components/ui). Wire the Delete button to open the AlertDialog with a confirmation message (e.g., 'Are you sure you want to permanently delete this local template? This action cannot be undone.'). On confirm, call the useLocalTemplates delete mutation with the template ID. On cancel, close the dialog without action"
         }
       ]
     }
