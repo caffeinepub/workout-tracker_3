@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Fitness/workout logging app with per-workout lb/kg unit toggle and navigation link management.",
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-remove-the-4th-anchor-link-element-from-the-navigation-bar-in-the-layout-component-the-element-is-identified-by-xpath-html-1-body-1-div-1-div-1-nav-1-div-1-div-1-a-4-keep-all-other-navigation-links-intact",
+      "title": "Remove the 4th anchor link element from the navigation bar in the Layout component. The element is identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]. Keep all other navigation links intact.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "lb/kg unit toggle should be adjustable per workout in the workout log, not a global setting",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Delete the second (duplicate/unwanted) navigation link, keeping only the first",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Delete 4th navigation link",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

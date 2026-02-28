@@ -1,0 +1,23 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Delete 4th navigation link",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Remove the 4th anchor link element from the navigation bar in the Layout component",
+      "acceptanceCriteria": [
+        "The navigation bar contains one fewer link — specifically the 4th link is removed",
+        "All remaining navigation links continue to work correctly",
+        "The navigation layout looks correct with the remaining links"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/Layout.tsx",
+          "operation": "modify",
+          "description": "Remove the 4th anchor link element from the navigation bar (identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]). Keep all other navigation links intact and ensure the remaining links continue to function correctly."
+        }
+      ]
+    }
+  ]
+}

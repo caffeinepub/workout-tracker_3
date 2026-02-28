@@ -1,0 +1,24 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-remove-the-4th-anchor-link-element-from-the-navigation-bar-in-the-layout-component-the-element-is-identified-by-xpath-html-1-body-1-div-1-div-1-nav-1-div-1-div-1-a-4-keep-all-other-navigation-links-intact",
+      "featureTitle": "Remove the 4th anchor link element from the navigation bar in the Layout component. The element is identified by XPath /html[1]/body[1]/div[1]/div[1]/nav[1]/div[1]/div[1]/a[4]. Keep all other navigation links intact.",
+      "files": [
+        "frontend/src/components/Layout.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

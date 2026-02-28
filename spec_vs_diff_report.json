@@ -1,0 +1,14 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-28T01:41:39.918Z",
+  "summary": "The diff shows that Layout.tsx was modified and the file-summaries.txt confirms 'The \"My Templates\" navigation link has been removed.' The 4th navigation link appears to have been removed from the navigation bar. The remaining links (History, Templates, Progression for authenticated users, and Workout Log as always-visible) are still present. REQ-1 appears to be implemented.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.8,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/components/Layout.tsx",
+    "project_state.json"
+  ]
+}
