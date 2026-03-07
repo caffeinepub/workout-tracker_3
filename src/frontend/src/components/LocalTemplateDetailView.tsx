@@ -9,6 +9,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +34,7 @@ import {
   ChevronUp,
   Dumbbell,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -71,16 +78,68 @@ function formatDuration(seconds: number): string {
   return `${mins}m ${secs}s`;
 }
 
+function exerciseToForm(ex: TemplateExercise): ExerciseForm {
+  // Convert stored seconds back to display form
+  const totalSeconds = ex.plannedTime ?? 0;
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+
+  if (totalSeconds === 0) {
+    return {
+      name: ex.name,
+      sets: ex.plannedSets > 0 ? ex.plannedSets.toString() : "",
+      reps: ex.plannedReps > 0 ? ex.plannedReps.toString() : "",
+      weight: ex.plannedWeight > 0 ? ex.plannedWeight.toString() : "",
+      durationValue: "",
+      durationUnit: "minutes",
+    };
+  }
+
+  // Prefer minutes if evenly divisible, otherwise use seconds
+  if (secs === 0 && mins > 0) {
+    return {
+      name: ex.name,
+      sets: ex.plannedSets > 0 ? ex.plannedSets.toString() : "",
+      reps: ex.plannedReps > 0 ? ex.plannedReps.toString() : "",
+      weight: ex.plannedWeight > 0 ? ex.plannedWeight.toString() : "",
+      durationValue: mins.toString(),
+      durationUnit: "minutes",
+    };
+  }
+
+  return {
+    name: ex.name,
+    sets: ex.plannedSets > 0 ? ex.plannedSets.toString() : "",
+    reps: ex.plannedReps > 0 ? ex.plannedReps.toString() : "",
+    weight: ex.plannedWeight > 0 ? ex.plannedWeight.toString() : "",
+    durationValue: totalSeconds.toString(),
+    durationUnit: "seconds",
+  };
+}
+
 export default function LocalTemplateDetailView({ template, onBack }: Props) {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [form, setForm] = useState<ExerciseForm>(defaultExerciseForm());
+
+  // Delete state
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
     null,
   );
+
+  // Edit state
+  const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<ExerciseForm>(defaultExerciseForm());
+  const [editFormError, setEditFormError] = useState<string | null>(null);
+
   const updateTemplate = useUpdateLocalTemplate();
 
   const updateField = (field: keyof ExerciseForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateEditField = (field: keyof ExerciseForm, value: string) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+    setEditFormError(null);
   };
 
   const handleAddExercise = async (e: React.FormEvent) => {
@@ -136,6 +195,56 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
     }
   };
 
+  const openEditDialog = (index: number) => {
+    setEditTargetIndex(index);
+    setEditForm(exerciseToForm(template.exercises[index]));
+    setEditFormError(null);
+  };
+
+  const closeEditDialog = () => {
+    setEditTargetIndex(null);
+    setEditForm(defaultExerciseForm());
+    setEditFormError(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.name.trim()) {
+      setEditFormError("Exercise name is required.");
+      return;
+    }
+    if (editTargetIndex === null) return;
+
+    const durationVal = safeInt(editForm.durationValue, 0);
+    const plannedTime =
+      editForm.durationUnit === "minutes" ? durationVal * 60 : durationVal;
+
+    const updatedExercise: TemplateExercise = {
+      name: editForm.name.trim(),
+      plannedSets: safeInt(editForm.sets, 0),
+      plannedReps: safeInt(editForm.reps, 0),
+      plannedWeight: safeInt(editForm.weight, 0),
+      plannedTime,
+    };
+
+    const updatedExercises = template.exercises.map((ex, i) =>
+      i === editTargetIndex ? updatedExercise : ex,
+    );
+
+    try {
+      await updateTemplate.mutateAsync({
+        id: template.id,
+        updates: { exercises: updatedExercises },
+      });
+      toast.success("Exercise updated");
+      closeEditDialog();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to update exercise";
+      toast.error(msg);
+    }
+  };
+
   const isPending = updateTemplate.isPending;
 
   return (
@@ -154,7 +263,10 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
         </h3>
 
         {template.exercises.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-4 text-center">
+          <p
+            className="text-muted-foreground text-sm py-4 text-center"
+            data-ocid="exercise.empty_state"
+          >
             No exercises yet. Add your first exercise below.
           </p>
         ) : (
@@ -179,17 +291,33 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                     )}
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
-                  onClick={() => setDeleteTargetIndex(idx)}
-                  title="Remove exercise"
-                  data-ocid={`exercise.delete_button.${idx + 1}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {/* Action buttons — always visible */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={() => openEditDialog(idx)}
+                    title="Edit exercise"
+                    disabled={isPending}
+                    data-ocid={`exercise.edit_button.${idx + 1}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteTargetIndex(idx)}
+                    title="Remove exercise"
+                    disabled={isPending}
+                    data-ocid={`exercise.delete_button.${idx + 1}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -316,7 +444,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
         )}
       </div>
 
-      {/* Delete exercise confirmation dialog */}
+      {/* ── Delete exercise confirmation dialog ─────────────────────────────── */}
       <AlertDialog
         open={deleteTargetIndex !== null}
         onOpenChange={(open) => {
@@ -343,6 +471,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
               onClick={handleDeleteExercise}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-ocid="exercise.delete.confirm_button"
+              disabled={isPending}
             >
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -352,6 +481,126 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Edit exercise modal ──────────────────────────────────────────────── */}
+      <Dialog
+        open={editTargetIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) closeEditDialog();
+        }}
+      >
+        <DialogContent data-ocid="exercise.edit.modal" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Exercise</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Exercise Name *</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => updateEditField("name", e.target.value)}
+                placeholder="e.g. Squat"
+                disabled={isPending}
+              />
+              {editFormError && (
+                <p className="text-xs text-destructive">{editFormError}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Sets</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editForm.sets}
+                  onChange={(e) => updateEditField("sets", e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Reps</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editForm.reps}
+                  onChange={(e) => updateEditField("reps", e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Weight</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editForm.weight}
+                  onChange={(e) => updateEditField("weight", e.target.value)}
+                  placeholder="0"
+                  disabled={isPending}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  value={editForm.durationValue}
+                  onChange={(e) =>
+                    updateEditField("durationValue", e.target.value)
+                  }
+                  placeholder="0"
+                  disabled={isPending}
+                  className="flex-1"
+                />
+                <Select
+                  value={editForm.durationUnit}
+                  onValueChange={(val) => updateEditField("durationUnit", val)}
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">minutes</SelectItem>
+                    <SelectItem value="seconds">seconds</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditDialog}
+                disabled={isPending}
+                data-ocid="exercise.edit.cancel_button"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isPending || !editForm.name.trim()}
+                data-ocid="exercise.edit.save_button"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

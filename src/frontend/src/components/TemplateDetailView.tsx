@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +17,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,15 +40,17 @@ import {
   ClipboardList,
   Dumbbell,
   Loader2,
+  Pencil,
   Plus,
+  Trash2,
   X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { UserWorkoutTemplateView } from "../backend";
+import type { Exercise, UserWorkoutTemplateView } from "../backend";
 import { DurationUnit } from "../backend";
-import type { Exercise } from "../backend";
 import { useAddExerciseToTemplate } from "../hooks/useAddExerciseToTemplate";
+import { useUpdateTemplateExercises } from "../hooks/useUpdateTemplateExercises";
 
 interface TemplateDetailViewProps {
   template: UserWorkoutTemplateView;
@@ -76,6 +94,20 @@ function safeInt(val: string, fallback = 0): number {
   return Number.isNaN(n) || n < 0 ? fallback : n;
 }
 
+function exerciseToFormState(exercise: Exercise): ExerciseFormState {
+  const durVal = Number(exercise.duration.value);
+  return {
+    name: exercise.name,
+    sets: Number(exercise.sets) > 0 ? exercise.sets.toString() : "",
+    reps: Number(exercise.reps) > 0 ? exercise.reps.toString() : "",
+    weight: Number(exercise.weight) > 0 ? exercise.weight.toString() : "",
+    durationValue: durVal > 0 ? durVal.toString() : "",
+    durationUnit:
+      exercise.duration.unit === DurationUnit.seconds ? "seconds" : "minutes",
+    notes: exercise.notes ?? "",
+  };
+}
+
 export default function TemplateDetailView({
   template,
   onBack,
@@ -85,11 +117,27 @@ export default function TemplateDetailView({
   const [form, setForm] = useState<ExerciseFormState>(defaultFormState);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Delete exercise state
+  const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
+    null,
+  );
+
+  // Edit exercise state
+  const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<ExerciseFormState>(defaultFormState);
+  const [editFormError, setEditFormError] = useState<string | null>(null);
+
   const addExerciseMutation = useAddExerciseToTemplate();
+  const updateExercisesMutation = useUpdateTemplateExercises();
 
   function handleChange(field: keyof ExerciseFormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setFormError(null);
+  }
+
+  function handleEditChange(field: keyof ExerciseFormState, value: string) {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+    setEditFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -137,7 +185,84 @@ export default function TemplateDetailView({
     setShowAddForm(false);
   }
 
+  // ── Delete exercise ──────────────────────────────────────────────────────────
+  async function handleDeleteExercise() {
+    if (deleteTargetIndex === null) return;
+    const updatedExercises = exercises.filter(
+      (_, i) => i !== deleteTargetIndex,
+    );
+    try {
+      await updateExercisesMutation.mutateAsync({
+        template,
+        exercises: updatedExercises,
+      });
+      toast.success("Exercise removed");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to remove exercise";
+      toast.error(message);
+    } finally {
+      setDeleteTargetIndex(null);
+    }
+  }
+
+  // ── Edit exercise ────────────────────────────────────────────────────────────
+  function openEditDialog(index: number) {
+    setEditTargetIndex(index);
+    setEditForm(exerciseToFormState(exercises[index]));
+    setEditFormError(null);
+  }
+
+  function closeEditDialog() {
+    setEditTargetIndex(null);
+    setEditForm(defaultFormState);
+    setEditFormError(null);
+  }
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editForm.name.trim()) {
+      setEditFormError("Exercise name is required.");
+      return;
+    }
+    if (editTargetIndex === null) return;
+
+    const durVal = safeInt(editForm.durationValue, 0);
+    const updatedExercise: Exercise = {
+      name: editForm.name.trim(),
+      sets: BigInt(safeInt(editForm.sets, 0)),
+      reps: BigInt(safeInt(editForm.reps, 0)),
+      weight: BigInt(safeInt(editForm.weight, 0)),
+      duration: {
+        value: BigInt(durVal),
+        unit:
+          editForm.durationUnit === "minutes"
+            ? DurationUnit.minutes
+            : DurationUnit.seconds,
+      },
+      notes: editForm.notes.trim(),
+    };
+
+    const updatedExercises = exercises.map((ex, i) =>
+      i === editTargetIndex ? updatedExercise : ex,
+    );
+
+    try {
+      await updateExercisesMutation.mutateAsync({
+        template,
+        exercises: updatedExercises,
+      });
+      toast.success("Exercise updated");
+      closeEditDialog();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to update exercise";
+      toast.error(message);
+    }
+  }
+
   const isPending = addExerciseMutation.isPending;
+  const isUpdating = updateExercisesMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -212,7 +337,10 @@ export default function TemplateDetailView({
                 // biome-ignore lint/suspicious/noArrayIndexKey: exercises have no stable unique id
                 <div key={index}>
                   {index > 0 && <Separator className="mb-3" />}
-                  <div className="flex items-start gap-3">
+                  <div
+                    className="flex items-start gap-3"
+                    data-ocid={`exercise.item.${index + 1}`}
+                  >
                     <div className="rounded-md bg-orange-100 dark:bg-orange-900/30 p-2 mt-0.5 shrink-0">
                       <Dumbbell className="h-4 w-4 text-orange-500" />
                     </div>
@@ -246,6 +374,33 @@ export default function TemplateDetailView({
                         </p>
                       )}
                     </div>
+                    {/* Action buttons — always visible */}
+                    <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => openEditDialog(index)}
+                        title="Edit exercise"
+                        disabled={isUpdating}
+                        data-ocid={`exercise.edit_button.${index + 1}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTargetIndex(index)}
+                        title="Remove exercise"
+                        disabled={isUpdating}
+                        data-ocid={`exercise.delete_button.${index + 1}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -255,7 +410,10 @@ export default function TemplateDetailView({
 
         {exercises.length === 0 && !showAddForm && (
           <CardContent className="pt-0">
-            <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div
+              className="flex flex-col items-center justify-center py-8 text-center"
+              data-ocid="exercise.empty_state"
+            >
               <div className="rounded-full bg-muted p-4 mb-3">
                 <Dumbbell className="h-6 w-6 text-muted-foreground" />
               </div>
@@ -415,6 +573,182 @@ export default function TemplateDetailView({
           </CardContent>
         )}
       </Card>
+
+      {/* ── Delete exercise confirmation dialog ─────────────────────────────── */}
+      <AlertDialog
+        open={deleteTargetIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetIndex(null);
+        }}
+      >
+        <AlertDialogContent data-ocid="exercise.delete.dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Exercise</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{" "}
+              {deleteTargetIndex !== null && exercises[deleteTargetIndex]
+                ? `"${exercises[deleteTargetIndex].name}"`
+                : "this exercise"}{" "}
+              from the template? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-ocid="exercise.delete.cancel_button">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteExercise}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-ocid="exercise.delete.confirm_button"
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Edit exercise modal ──────────────────────────────────────────────── */}
+      <Dialog
+        open={editTargetIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) closeEditDialog();
+        }}
+      >
+        <DialogContent data-ocid="exercise.edit.modal" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Exercise</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
+            <div>
+              <Label className="text-xs">Exercise Name *</Label>
+              <Input
+                placeholder="e.g. Bench Press"
+                value={editForm.name}
+                onChange={(e) => handleEditChange("name", e.target.value)}
+                className="mt-1"
+                disabled={isUpdating}
+              />
+              {editFormError && (
+                <p className="text-xs text-destructive mt-1">{editFormError}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Sets</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={editForm.sets}
+                  onChange={(e) => handleEditChange("sets", e.target.value)}
+                  className="mt-1"
+                  disabled={isUpdating}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Reps</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={editForm.reps}
+                  onChange={(e) => handleEditChange("reps", e.target.value)}
+                  className="mt-1"
+                  disabled={isUpdating}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Weight</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={editForm.weight}
+                  onChange={(e) => handleEditChange("weight", e.target.value)}
+                  className="mt-1"
+                  disabled={isUpdating}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1 block">Duration</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={editForm.durationValue}
+                  onChange={(e) =>
+                    handleEditChange("durationValue", e.target.value)
+                  }
+                  className="flex-1"
+                  disabled={isUpdating}
+                />
+                <Select
+                  value={editForm.durationUnit}
+                  onValueChange={(val) => handleEditChange("durationUnit", val)}
+                  disabled={isUpdating}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minutes">minutes</SelectItem>
+                    <SelectItem value="seconds">seconds</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Notes</Label>
+              <Textarea
+                placeholder="Optional notes..."
+                value={editForm.notes}
+                onChange={(e) => handleEditChange("notes", e.target.value)}
+                className="mt-1 resize-none"
+                rows={2}
+                disabled={isUpdating}
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={closeEditDialog}
+                disabled={isUpdating}
+                data-ocid="exercise.edit.cancel_button"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isUpdating || !editForm.name.trim()}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                data-ocid="exercise.edit.save_button"
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

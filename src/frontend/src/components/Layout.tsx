@@ -68,9 +68,10 @@ export default function Layout() {
                   History
                 </Link>
                 <Link
-                  to="/templates"
+                  to="/workout-templates"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors hover:bg-accent hover:text-accent-foreground [&.active]:bg-orange-500 [&.active]:text-white whitespace-nowrap"
                   activeProps={{ className: "active" }}
+                  data-ocid="nav.templates.link"
                 >
                   <FileText className="h-4 w-4" />
                   Templates
