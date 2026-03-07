@@ -1,8 +1,8 @@
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import WorkoutEntryForm from '../components/WorkoutEntryForm';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { LogIn, Plus } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { LogIn, Plus } from "lucide-react";
+import WorkoutEntryForm from "../components/WorkoutEntryForm";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 export default function AddWorkoutPage() {
   const { identity, login } = useInternetIdentity();
@@ -20,7 +20,10 @@ export default function AddWorkoutPage() {
             <p className="text-muted-foreground mb-6">
               Please log in to start tracking your workouts and progress.
             </p>
-            <Button onClick={login} className="bg-orange-600 hover:bg-orange-700 font-bold">
+            <Button
+              onClick={login}
+              className="bg-orange-600 hover:bg-orange-700 font-bold"
+            >
               <LogIn className="mr-2 h-4 w-4" />
               Login to Continue
             </Button>

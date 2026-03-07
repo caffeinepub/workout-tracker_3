@@ -1,5 +1,11 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ExerciseSelectorProps {
   exercises: string[];
@@ -7,7 +13,11 @@ interface ExerciseSelectorProps {
   onSelectExercise: (exercise: string) => void;
 }
 
-export default function ExerciseSelector({ exercises, selectedExercise, onSelectExercise }: ExerciseSelectorProps) {
+export default function ExerciseSelector({
+  exercises,
+  selectedExercise,
+  onSelectExercise,
+}: ExerciseSelectorProps) {
   if (exercises.length === 0) {
     return null;
   }

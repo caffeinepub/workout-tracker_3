@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useActor } from './useActor';
-import { UserProfile } from '../backend';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { UserProfile } from "../backend";
+import { useActor } from "./useActor";
 
 export function useSaveCallerUserProfile() {
   const { actor } = useActor();
@@ -8,11 +8,11 @@ export function useSaveCallerUserProfile() {
 
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+      queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
     },
   });
 }

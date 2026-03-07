@@ -1,22 +1,24 @@
-import { useState, useMemo } from 'react';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useWorkoutHistory } from '../hooks/useWorkoutHistory';
-import ExerciseSelector from '../components/ExerciseSelector';
-import ProgressionChart from '../components/ProgressionChart';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { LogIn, TrendingUp, Loader2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, LogIn, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import ExerciseSelector from "../components/ExerciseSelector";
+import ProgressionChart from "../components/ProgressionChart";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useWorkoutHistory } from "../hooks/useWorkoutHistory";
 
 export default function ProgressionPage() {
   const { identity, login } = useInternetIdentity();
   const { data: workouts, isLoading } = useWorkoutHistory();
-  const [selectedExercise, setSelectedExercise] = useState<string>('');
+  const [selectedExercise, setSelectedExercise] = useState<string>("");
 
   const isAuthenticated = !!identity;
 
   const exercises = useMemo(() => {
     if (!workouts) return [];
-    const uniqueExercises = Array.from(new Set(workouts.map((w) => w.exerciseName)));
+    const uniqueExercises = Array.from(
+      new Set(workouts.map((w) => w.exerciseName)),
+    );
     return uniqueExercises.sort();
   }, [workouts]);
 
@@ -44,9 +46,13 @@ export default function ProgressionPage() {
             </div>
             <h2 className="text-2xl font-bold mb-2">Track Your Progress</h2>
             <p className="text-muted-foreground mb-6">
-              Please log in to view your workout progression and performance analytics.
+              Please log in to view your workout progression and performance
+              analytics.
             </p>
-            <Button onClick={login} className="bg-orange-600 hover:bg-orange-700 font-bold">
+            <Button
+              onClick={login}
+              className="bg-orange-600 hover:bg-orange-700 font-bold"
+            >
               <LogIn className="mr-2 h-4 w-4" />
               Login to View Progress
             </Button>
@@ -76,7 +82,8 @@ export default function ProgressionPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">No workout data yet</h3>
             <p className="text-muted-foreground">
-              Start logging workouts to see your progression charts and track your improvements over time!
+              Start logging workouts to see your progression charts and track
+              your improvements over time!
             </p>
           </CardContent>
         </Card>
@@ -88,7 +95,9 @@ export default function ProgressionPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black mb-2">Progression Analytics</h1>
-        <p className="text-muted-foreground">Visualize your performance trends and improvements</p>
+        <p className="text-muted-foreground">
+          Visualize your performance trends and improvements
+        </p>
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
@@ -103,7 +112,10 @@ export default function ProgressionPage() {
         </Card>
 
         {selectedExercise && (
-          <ProgressionChart workouts={filteredWorkouts} exerciseName={selectedExercise} />
+          <ProgressionChart
+            workouts={filteredWorkouts}
+            exerciseName={selectedExercise}
+          />
         )}
       </div>
     </div>

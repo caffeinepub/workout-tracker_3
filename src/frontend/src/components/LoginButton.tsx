@@ -1,14 +1,14 @@
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, Loader2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, LogIn, LogOut } from "lucide-react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 export default function LoginButton() {
   const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
 
   const isAuthenticated = !!identity;
-  const isLoggingIn = loginStatus === 'logging-in';
+  const isLoggingIn = loginStatus === "logging-in";
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -18,8 +18,8 @@ export default function LoginButton() {
       try {
         await login();
       } catch (error: any) {
-        console.error('Login error:', error);
-        if (error.message === 'User is already authenticated') {
+        console.error("Login error:", error);
+        if (error.message === "User is already authenticated") {
           await clear();
           setTimeout(() => login(), 300);
         }
@@ -31,8 +31,12 @@ export default function LoginButton() {
     <Button
       onClick={handleAuth}
       disabled={isLoggingIn}
-      variant={isAuthenticated ? 'secondary' : 'default'}
-      className={isAuthenticated ? '' : 'bg-white text-orange-600 hover:bg-white/90 font-bold'}
+      variant={isAuthenticated ? "secondary" : "default"}
+      className={
+        isAuthenticated
+          ? ""
+          : "bg-white text-orange-600 hover:bg-white/90 font-bold"
+      }
     >
       {isLoggingIn ? (
         <>

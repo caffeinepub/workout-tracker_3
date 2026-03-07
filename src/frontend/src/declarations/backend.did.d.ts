@@ -17,11 +17,45 @@ export type DayOfWeek = { 'tuesday' : null } |
   { 'sunday' : null } |
   { 'friday' : null } |
   { 'monday' : null };
+export interface Duration { 'value' : bigint, 'unit' : DurationUnit }
+export type DurationUnit = { 'minutes' : null } |
+  { 'seconds' : null };
+export interface Exercise {
+  'weight' : bigint,
+  'duration' : Duration,
+  'name' : string,
+  'reps' : bigint,
+  'sets' : bigint,
+  'notes' : string,
+}
+export type ExerciseId = bigint;
+export type LogEntryId = bigint;
+export interface Phase { 'id' : PhaseId, 'owner' : Principal, 'name' : string }
+export interface PhaseExercise {
+  'id' : ExerciseId,
+  'name' : string,
+  'phaseId' : PhaseId,
+}
+export interface PhaseExerciseLog {
+  'id' : LogEntryId,
+  'weight' : bigint,
+  'exerciseId' : ExerciseId,
+  'date' : Time,
+  'reps' : bigint,
+  'sets' : bigint,
+}
+export type PhaseId = bigint;
 export type Time = bigint;
-export interface UserProfile { 'name' : string }
+export interface UserProfile { 'name' : string, 'weightUnit' : WeightUnit }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface UserWorkoutTemplateView {
+  'id' : bigint,
+  'template' : WorkoutTemplateView,
+}
+export type WeightUnit = { 'kg' : null } |
+  { 'lbs' : null };
 export interface WorkoutSession {
   'day' : DayOfWeek,
   'weight' : bigint,
@@ -32,12 +66,27 @@ export interface WorkoutSession {
   'notes' : string,
   'exerciseName' : string,
 }
+export interface WorkoutTemplateView {
+  'days' : Array<DayOfWeek>,
+  'name' : string,
+  'exercises' : Array<Exercise>,
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addExerciseToPhase' : ActorMethod<[PhaseId, string], ExerciseId>,
+  'addExerciseToTemplate' : ActorMethod<[bigint, Exercise], boolean>,
   'addWorkout' : ActorMethod<[WorkoutSession], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createPhase' : ActorMethod<[string], PhaseId>,
+  'createWorkoutTemplate' : ActorMethod<[WorkoutTemplateView], boolean>,
+  'deletePhase' : ActorMethod<[PhaseId], boolean>,
+  'deleteTemplate' : ActorMethod<[bigint], [] | [string]>,
+  'getAllPhases' : ActorMethod<[], Array<Phase>>,
+  'getAllWorkoutTemplates' : ActorMethod<[], Array<UserWorkoutTemplateView>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getExerciseLogs' : ActorMethod<[ExerciseId], Array<PhaseExerciseLog>>,
+  'getExercisesForPhase' : ActorMethod<[PhaseId], Array<PhaseExercise>>,
   'getOwnWorkoutHistory' : ActorMethod<[], Array<WorkoutSession>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserWorkoutHistory' : ActorMethod<[Principal], Array<WorkoutSession>>,
@@ -46,8 +95,15 @@ export interface _SERVICE {
     Array<WorkoutSession>
   >,
   'getWorkoutSessionsByDay' : ActorMethod<[DayOfWeek], Array<WorkoutSession>>,
+  'getWorkoutTemplatesByDay' : ActorMethod<
+    [DayOfWeek],
+    Array<UserWorkoutTemplateView>
+  >,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'logExercise' : ActorMethod<[ExerciseId, bigint, bigint, bigint], LogEntryId>,
+  'removeExercise' : ActorMethod<[ExerciseId], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateTemplateName' : ActorMethod<[bigint, string], [] | [string]>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

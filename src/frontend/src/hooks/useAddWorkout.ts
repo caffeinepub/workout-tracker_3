@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useActor } from './useActor';
-import { WorkoutSession } from '../backend';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { WorkoutSession } from "../backend";
+import { useActor } from "./useActor";
 
 export function useAddWorkout() {
   const { actor } = useActor();
@@ -8,11 +8,11 @@ export function useAddWorkout() {
 
   return useMutation({
     mutationFn: async (session: WorkoutSession) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.addWorkout(session);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workoutHistory'] });
+      queryClient.invalidateQueries({ queryKey: ["workoutHistory"] });
     },
   });
 }
