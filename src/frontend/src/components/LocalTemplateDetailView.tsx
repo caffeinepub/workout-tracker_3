@@ -163,7 +163,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
               <div
                 // biome-ignore lint/suspicious/noArrayIndexKey: exercises have no stable unique id
                 key={idx}
-                className="border border-border rounded-lg p-3 bg-muted/20 flex items-start justify-between gap-2 group"
+                className="border border-border rounded-lg p-3 bg-muted/20 flex items-start justify-between gap-2"
                 data-ocid={`exercise.item.${idx + 1}`}
               >
                 <div className="flex-1 min-w-0">
@@ -183,7 +183,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
                   onClick={() => setDeleteTargetIndex(idx)}
                   title="Remove exercise"
                   data-ocid={`exercise.delete_button.${idx + 1}`}
