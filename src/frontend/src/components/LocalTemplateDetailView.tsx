@@ -53,6 +53,7 @@ interface ExerciseForm {
   weight: string;
   durationValue: string;
   durationUnit: "minutes" | "seconds";
+  notes: string;
 }
 
 const defaultExerciseForm = (): ExerciseForm => ({
@@ -62,6 +63,7 @@ const defaultExerciseForm = (): ExerciseForm => ({
   weight: "",
   durationValue: "",
   durationUnit: "minutes",
+  notes: "",
 });
 
 function safeInt(val: string, fallback = 0): number {
@@ -79,7 +81,6 @@ function formatDuration(seconds: number): string {
 }
 
 function exerciseToForm(ex: TemplateExercise): ExerciseForm {
-  // Convert stored seconds back to display form
   const totalSeconds = ex.plannedTime ?? 0;
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
@@ -92,10 +93,10 @@ function exerciseToForm(ex: TemplateExercise): ExerciseForm {
       weight: ex.plannedWeight > 0 ? ex.plannedWeight.toString() : "",
       durationValue: "",
       durationUnit: "minutes",
+      notes: ex.notes ?? "",
     };
   }
 
-  // Prefer minutes if evenly divisible, otherwise use seconds
   if (secs === 0 && mins > 0) {
     return {
       name: ex.name,
@@ -104,6 +105,7 @@ function exerciseToForm(ex: TemplateExercise): ExerciseForm {
       weight: ex.plannedWeight > 0 ? ex.plannedWeight.toString() : "",
       durationValue: mins.toString(),
       durationUnit: "minutes",
+      notes: ex.notes ?? "",
     };
   }
 
@@ -114,6 +116,7 @@ function exerciseToForm(ex: TemplateExercise): ExerciseForm {
     weight: ex.plannedWeight > 0 ? ex.plannedWeight.toString() : "",
     durationValue: totalSeconds.toString(),
     durationUnit: "seconds",
+    notes: ex.notes ?? "",
   };
 }
 
@@ -121,12 +124,9 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [form, setForm] = useState<ExerciseForm>(defaultExerciseForm());
 
-  // Delete state
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
     null,
   );
-
-  // Edit state
   const [editTargetIndex, setEditTargetIndex] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<ExerciseForm>(defaultExerciseForm());
   const [editFormError, setEditFormError] = useState<string | null>(null);
@@ -159,6 +159,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
       plannedReps: safeInt(form.reps, 0),
       plannedWeight: safeInt(form.weight, 0),
       plannedTime,
+      notes: form.notes.trim(),
     };
 
     try {
@@ -225,6 +226,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
       plannedReps: safeInt(editForm.reps, 0),
       plannedWeight: safeInt(editForm.weight, 0),
       plannedTime,
+      notes: editForm.notes.trim(),
     };
 
     const updatedExercises = template.exercises.map((ex, i) =>
@@ -290,8 +292,12 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                       <span>{formatDuration(ex.plannedTime)}</span>
                     )}
                   </div>
+                  {ex.notes && (
+                    <div className="text-sm text-muted-foreground mt-1 italic">
+                      {ex.notes}
+                    </div>
+                  )}
                 </div>
-                {/* Action buttons — always visible */}
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
                     type="button"
@@ -418,6 +424,17 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input
+                value={form.notes}
+                onChange={(e) => updateField("notes", e.target.value)}
+                placeholder="Optional notes"
+                disabled={isPending}
+                data-ocid="exercise.add.notes.input"
+              />
             </div>
 
             <div className="flex gap-3 justify-end">
@@ -571,6 +588,17 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input
+                value={editForm.notes}
+                onChange={(e) => updateEditField("notes", e.target.value)}
+                placeholder="Optional notes"
+                disabled={isPending}
+                data-ocid="exercise.edit.notes.input"
+              />
             </div>
 
             <div className="flex gap-3 justify-end pt-1">

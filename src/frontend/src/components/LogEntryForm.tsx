@@ -13,14 +13,16 @@ interface Props {
 }
 
 export default function LogEntryForm({ log, onBack }: Props) {
-  const [exercises, setExercises] = useState<LogExercise[]>(log.exercises);
+  const [exercises, setExercises] = useState<LogExercise[]>(
+    log.exercises.map((ex) => ({ ...ex, notes: ex.notes ?? "" })),
+  );
   const updateMutation = useUpdateLocalLog();
   const completeMutation = useMarkLogComplete();
 
   // Sync if log prop changes (e.g. after save)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally sync on id change only
   useEffect(() => {
-    setExercises(log.exercises);
+    setExercises(log.exercises.map((ex) => ({ ...ex, notes: ex.notes ?? "" })));
   }, [log.id]);
 
   const updateActual = (
@@ -37,6 +39,14 @@ export default function LogEntryForm({ log, onBack }: Props) {
         ...updated[index],
         [field]: value === "" ? null : Number(value),
       };
+      return updated;
+    });
+  };
+
+  const updateNotes = (index: number, value: string) => {
+    setExercises((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], notes: value };
       return updated;
     });
   };
@@ -184,6 +194,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                         }
                         disabled={isCompleted}
                         className="h-8 text-sm"
+                        data-ocid={`log.exercise.sets.input.${idx + 1}`}
                       />
                     </div>
                     <div>
@@ -198,6 +209,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                         }
                         disabled={isCompleted}
                         className="h-8 text-sm"
+                        data-ocid={`log.exercise.reps.input.${idx + 1}`}
                       />
                     </div>
                     <div>
@@ -216,6 +228,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                         }
                         disabled={isCompleted}
                         className="h-8 text-sm"
+                        data-ocid={`log.exercise.weight.input.${idx + 1}`}
                       />
                     </div>
                     <div>
@@ -234,10 +247,24 @@ export default function LogEntryForm({ log, onBack }: Props) {
                         }
                         disabled={isCompleted}
                         className="h-8 text-sm"
+                        data-ocid={`log.exercise.time.input.${idx + 1}`}
                       />
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                <Input
+                  placeholder="Session notes..."
+                  value={ex.notes}
+                  onChange={(e) => updateNotes(idx, e.target.value)}
+                  disabled={isCompleted}
+                  className="text-sm"
+                  data-ocid={`log.exercise.notes.input.${idx + 1}`}
+                />
               </div>
             </div>
           );

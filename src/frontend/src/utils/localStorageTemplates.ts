@@ -6,6 +6,7 @@ export interface TemplateExercise {
   plannedReps: number;
   plannedWeight: number;
   plannedTime: number; // total seconds
+  notes?: string;
 }
 
 export interface WorkoutTemplate {
@@ -65,6 +66,7 @@ export function getAllTemplates(): WorkoutTemplate[] {
         plannedTime: Number.isFinite(Number(ex.plannedTime))
           ? Number(ex.plannedTime)
           : 0,
+        notes: typeof ex.notes === "string" ? ex.notes : "",
       })),
     }));
   } catch {
@@ -113,6 +115,7 @@ export function createTemplate(
         ex.plannedTime,
         `${label} duration`,
       ),
+      notes: ex.notes?.trim() ?? "",
     };
   });
 

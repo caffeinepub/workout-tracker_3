@@ -8,6 +8,7 @@ export interface LogExercise {
   actualReps: number | null;
   actualWeight: number | null;
   actualTime: number | null;
+  notes: string;
 }
 
 export interface WorkoutLog {
@@ -37,7 +38,15 @@ export function getAllLogs(): WorkoutLog[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as WorkoutLog[];
+    const parsed = JSON.parse(raw) as WorkoutLog[];
+    // Ensure notes field exists on all exercises (for backwards compat)
+    return parsed.map((log) => ({
+      ...log,
+      exercises: (log.exercises ?? []).map((ex) => ({
+        ...ex,
+        notes: typeof ex.notes === "string" ? ex.notes : "",
+      })),
+    }));
   } catch {
     return [];
   }
@@ -75,6 +84,7 @@ export function createLogFromTemplate(template: {
       actualReps: null,
       actualWeight: null,
       actualTime: null,
+      notes: "",
     })),
   };
   if (!isLocalStorageAvailable()) return log;
