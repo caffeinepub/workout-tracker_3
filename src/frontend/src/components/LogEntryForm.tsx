@@ -187,7 +187,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                       <Input
                         type="number"
                         min={0}
-                        placeholder={String(ex.plannedSets)}
+                        placeholder=""
                         value={ex.actualSets ?? ""}
                         onChange={(e) =>
                           updateActual(idx, "actualSets", e.target.value)
@@ -202,7 +202,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                       <Input
                         type="number"
                         min={0}
-                        placeholder={String(ex.plannedReps)}
+                        placeholder=""
                         value={ex.actualReps ?? ""}
                         onChange={(e) =>
                           updateActual(idx, "actualReps", e.target.value)
@@ -219,9 +219,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                       <Input
                         type="number"
                         min={0}
-                        placeholder={
-                          ex.plannedWeight > 0 ? String(ex.plannedWeight) : "0"
-                        }
+                        placeholder=""
                         value={ex.actualWeight ?? ""}
                         onChange={(e) =>
                           updateActual(idx, "actualWeight", e.target.value)
@@ -238,9 +236,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                       <Input
                         type="number"
                         min={0}
-                        placeholder={
-                          ex.plannedTime > 0 ? String(ex.plannedTime) : "0"
-                        }
+                        placeholder=""
                         value={ex.actualTime ?? ""}
                         onChange={(e) =>
                           updateActual(idx, "actualTime", e.target.value)
