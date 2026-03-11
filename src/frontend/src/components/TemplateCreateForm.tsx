@@ -8,7 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateLocalTemplate } from "@/hooks/useLocalTemplates";
+import { useActor } from "@/hooks/useActor";
+import { useAuth } from "@/hooks/useAuth";
+import { useSmartCreateTemplate } from "@/hooks/useSmartTemplates";
 import type { TemplateExercise } from "@/utils/localStorageTemplates";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -49,7 +51,12 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
   const [exercises, setExercises] = useState<ExerciseForm[]>([
     defaultExercise(),
   ]);
-  const createTemplate = useCreateLocalTemplate();
+  const createTemplate = useSmartCreateTemplate();
+  const { actor, isFetching: actorLoading } = useActor();
+  const { isAuthenticated } = useAuth();
+
+  // When authenticated, wait for the actor to be ready before allowing submission
+  const actorReady = !isAuthenticated || (!!actor && !actorLoading);
 
   const updateExercise = (
     index: number,
@@ -78,13 +85,17 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
       return;
     }
 
+    if (!actorReady) {
+      toast.error("Still connecting — please wait a moment and try again");
+      return;
+    }
+
     const validExercises = exercises.filter((ex) => ex.name.trim());
     if (validExercises.length === 0) {
       toast.error("Please add at least one exercise with a name");
       return;
     }
 
-    // Map to TemplateExercise shape (plannedSets, plannedReps, plannedWeight, plannedTime)
     const exercisesPayload: TemplateExercise[] = validExercises.map((ex) => {
       const durationVal = safeInt(ex.durationValue, 0);
       const plannedTime =
@@ -95,6 +106,7 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
         plannedReps: safeInt(ex.reps, 0),
         plannedWeight: safeInt(ex.weight, 0),
         plannedTime,
+        notes: ex.notes?.trim() ?? "",
       };
     });
 
@@ -123,8 +135,16 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
           onChange={(e) => setTemplateName(e.target.value)}
           placeholder="e.g. Push Day, Leg Day..."
           disabled={isPending}
+          data-ocid="template.create.name.input"
         />
       </div>
+
+      {isAuthenticated && actorLoading && (
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Connecting to backend…
+        </p>
+      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -248,6 +268,16 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input
+                value={ex.notes}
+                onChange={(e) => updateExercise(index, "notes", e.target.value)}
+                placeholder="Optional notes"
+                disabled={isPending}
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -258,14 +288,24 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
           variant="outline"
           onClick={onCancel}
           disabled={isPending}
+          data-ocid="template.create.cancel_button"
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending || !templateName.trim()}>
+        <Button
+          type="submit"
+          disabled={isPending || !templateName.trim() || !actorReady}
+          data-ocid="template.create.submit_button"
+        >
           {isPending ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Creating...
+            </>
+          ) : actorLoading && isAuthenticated ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting...
             </>
           ) : (
             "Create Template"

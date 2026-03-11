@@ -14,15 +14,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  useDeleteLocalTemplate,
-  useLocalTemplates,
-  useUpdateLocalTemplate,
-} from "@/hooks/useLocalTemplates";
+  useSmartDeleteTemplate,
+  useSmartTemplates,
+  useSmartUpdateTemplateName,
+} from "@/hooks/useSmartTemplates";
 import {
   Calendar,
   ChevronRight,
+  Cloud,
   Dumbbell,
+  HardDrive,
   Pencil,
   Plus,
   Trash2,
@@ -49,9 +52,10 @@ export default function LocalTemplatesPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleteTargetName, setDeleteTargetName] = useState("");
 
-  const { data: templates = [], isLoading } = useLocalTemplates();
-  const deleteTemplate = useDeleteLocalTemplate();
-  const updateTemplate = useUpdateLocalTemplate();
+  const { isAuthenticated } = useAuth();
+  const { data: templates = [], isLoading } = useSmartTemplates();
+  const deleteTemplate = useSmartDeleteTemplate();
+  const updateTemplateName = useSmartUpdateTemplateName();
 
   const selectedTemplate = selectedTemplateId
     ? (templates.find((t) => t.id === selectedTemplateId) ?? null)
@@ -81,9 +85,9 @@ export default function LocalTemplatesPage() {
       return;
     }
     try {
-      await updateTemplate.mutateAsync({ id, updates: { name: trimmed } });
+      await updateTemplateName.mutateAsync({ id, updates: { name: trimmed } });
     } catch {
-      // silently ignore for local storage
+      // silently ignore
     } finally {
       setEditingTemplateId(null);
       setEditingName("");
@@ -167,6 +171,7 @@ export default function LocalTemplatesPage() {
                 setView("list");
                 setSelectedTemplateId(null);
               }}
+              onTemplateUpdated={(newId) => setSelectedTemplateId(newId)}
             />
           </CardContent>
         </Card>
@@ -176,12 +181,36 @@ export default function LocalTemplatesPage() {
         <>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Workout Templates</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">Workout Templates</h1>
+                {isAuthenticated ? (
+                  <Badge
+                    variant="secondary"
+                    className="gap-1 text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+                    data-ocid="templates.sync.toggle"
+                  >
+                    <Cloud className="w-3 h-3" />
+                    Synced
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 text-xs text-muted-foreground"
+                    data-ocid="templates.local.toggle"
+                  >
+                    <HardDrive className="w-3 h-3" />
+                    Local
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground text-sm mt-1">
                 {templates.length} template{templates.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button onClick={() => setView("create")}>
+            <Button
+              onClick={() => setView("create")}
+              data-ocid="templates.create.button"
+            >
               <Plus className="w-4 h-4 mr-2" />
               New Template
             </Button>
@@ -189,13 +218,19 @@ export default function LocalTemplatesPage() {
 
           {templates.length === 0 ? (
             <Card>
-              <CardContent className="py-12 text-center">
+              <CardContent
+                className="py-12 text-center"
+                data-ocid="templates.empty_state"
+              >
                 <Dumbbell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="font-semibold text-lg mb-2">No templates yet</h3>
                 <p className="text-muted-foreground text-sm mb-6">
                   Create your first workout template to get started.
                 </p>
-                <Button onClick={() => setView("create")}>
+                <Button
+                  onClick={() => setView("create")}
+                  data-ocid="templates.empty.create.button"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Template
                 </Button>
@@ -203,13 +238,14 @@ export default function LocalTemplatesPage() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {templates.map((template) => {
+              {templates.map((template, idx) => {
                 const isEditing = editingTemplateId === template.id;
 
                 return (
                   <Card
                     key={template.id}
                     className="hover:border-primary/50 transition-colors group"
+                    data-ocid={`templates.item.${idx + 1}`}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -233,6 +269,7 @@ export default function LocalTemplatesPage() {
                                   }
                                   onBlur={() => commitEdit(template.id)}
                                   className="h-8 text-sm font-semibold"
+                                  data-ocid={`templates.rename.input.${idx + 1}`}
                                 />
                               </div>
                             ) : (
@@ -253,6 +290,7 @@ export default function LocalTemplatesPage() {
                                   }
                                   className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted shrink-0"
                                   title="Edit name"
+                                  data-ocid={`templates.edit_button.${idx + 1}`}
                                 >
                                   <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                                 </button>
@@ -283,6 +321,7 @@ export default function LocalTemplatesPage() {
                               openDeleteDialog(e, template.id, template.name)
                             }
                             title="Delete template"
+                            data-ocid={`templates.delete_button.${idx + 1}`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -324,7 +363,7 @@ export default function LocalTemplatesPage() {
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-ocid="templates.delete.dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Template</AlertDialogTitle>
             <AlertDialogDescription>
@@ -333,10 +372,13 @@ export default function LocalTemplatesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-ocid="templates.delete.cancel_button">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-ocid="templates.delete.confirm_button"
             >
               Delete
             </AlertDialogAction>

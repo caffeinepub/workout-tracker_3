@@ -24,7 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateLocalTemplate } from "@/hooks/useLocalTemplates";
+import {
+  useSmartAddExerciseToTemplate,
+  useSmartUpdateTemplateExercises,
+} from "@/hooks/useSmartTemplates";
 import type {
   TemplateExercise,
   WorkoutTemplate,
@@ -44,6 +47,7 @@ import { toast } from "sonner";
 interface Props {
   template: WorkoutTemplate;
   onBack: () => void;
+  onTemplateUpdated?: (newId: string) => void;
 }
 
 interface ExerciseForm {
@@ -120,7 +124,11 @@ function exerciseToForm(ex: TemplateExercise): ExerciseForm {
   };
 }
 
-export default function LocalTemplateDetailView({ template, onBack }: Props) {
+export default function LocalTemplateDetailView({
+  template,
+  onBack,
+  onTemplateUpdated,
+}: Props) {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [form, setForm] = useState<ExerciseForm>(defaultExerciseForm());
 
@@ -131,7 +139,11 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
   const [editForm, setEditForm] = useState<ExerciseForm>(defaultExerciseForm());
   const [editFormError, setEditFormError] = useState<string | null>(null);
 
-  const updateTemplate = useUpdateLocalTemplate();
+  const addExerciseMutation = useSmartAddExerciseToTemplate();
+  const updateExercisesMutation = useSmartUpdateTemplateExercises();
+
+  const isPending =
+    addExerciseMutation.isPending || updateExercisesMutation.isPending;
 
   const updateField = (field: keyof ExerciseForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -163,9 +175,10 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
     };
 
     try {
-      await updateTemplate.mutateAsync({
-        id: template.id,
-        updates: { exercises: [...template.exercises, newExercise] },
+      await addExerciseMutation.mutateAsync({
+        templateId: template.id,
+        template,
+        exercise: newExercise,
       });
       toast.success("Exercise added!");
       setForm(defaultExerciseForm());
@@ -182,11 +195,15 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
       (_, i) => i !== deleteTargetIndex,
     );
     try {
-      await updateTemplate.mutateAsync({
+      const result = await updateExercisesMutation.mutateAsync({
         id: template.id,
-        updates: { exercises: updatedExercises },
+        name: template.name,
+        exercises: updatedExercises,
       });
       toast.success("Exercise removed");
+      if (result.newId !== template.id) {
+        onTemplateUpdated?.(result.newId);
+      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Failed to remove exercise";
@@ -234,20 +251,22 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
     );
 
     try {
-      await updateTemplate.mutateAsync({
+      const result = await updateExercisesMutation.mutateAsync({
         id: template.id,
-        updates: { exercises: updatedExercises },
+        name: template.name,
+        exercises: updatedExercises,
       });
       toast.success("Exercise updated");
       closeEditDialog();
+      if (result.newId !== template.id) {
+        onTemplateUpdated?.(result.newId);
+      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Failed to update exercise";
       toast.error(msg);
     }
   };
-
-  const isPending = updateTemplate.isPending;
 
   return (
     <div className="space-y-6">
@@ -359,6 +378,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                 onChange={(e) => updateField("name", e.target.value)}
                 placeholder="e.g. Squat"
                 disabled={isPending}
+                data-ocid="exercise.add.name.input"
               />
             </div>
 
@@ -446,7 +466,11 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending || !form.name.trim()}>
+              <Button
+                type="submit"
+                disabled={isPending || !form.name.trim()}
+                data-ocid="exercise.add.submit_button"
+              >
                 {isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -518,6 +542,7 @@ export default function LocalTemplateDetailView({ template, onBack }: Props) {
                 onChange={(e) => updateEditField("name", e.target.value)}
                 placeholder="e.g. Squat"
                 disabled={isPending}
+                data-ocid="exercise.edit.name.input"
               />
               {editFormError && (
                 <p className="text-xs text-destructive">{editFormError}</p>
