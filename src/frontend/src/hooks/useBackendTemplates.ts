@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DurationUnit, UserRole } from "../backend";
+import { DurationUnit } from "../backend";
 import type { Exercise, UserWorkoutTemplateView } from "../backend";
 import type {
   TemplateExercise,
@@ -9,8 +9,6 @@ import { useActor } from "./useActor";
 import { useAuth } from "./useAuth";
 
 export const BACKEND_TEMPLATES_KEY = ["backendWorkoutTemplates"];
-
-// ── Mapping helpers ──────────────────────────────────────────────────────────
 
 function mapBackendExercise(ex: Exercise): TemplateExercise {
   const durationSeconds =
@@ -53,48 +51,29 @@ export function mapBackendTemplate(
   };
 }
 
-// ── Ensure role is assigned ───────────────────────────────────────────────────
-
-async function ensureUserRole(
-  actor: {
-    getCallerUserRole: () => Promise<UserRole>;
-    assignCallerUserRole: (
-      p: import("@icp-sdk/core/principal").Principal,
-      r: UserRole,
-    ) => Promise<void>;
-  },
-  principal: import("@icp-sdk/core/principal").Principal,
-): Promise<void> {
+// Ensure user is registered in the canister's access control.
+// _initializeAccessControlWithSecret is idempotent: no-op if already registered.
+// This fixes "not authenticated" errors after canister redeployment (state reset).
+async function ensureRegistered(actor: {
+  _initializeAccessControlWithSecret: (s: string) => Promise<void>;
+}): Promise<void> {
   try {
-    const role = await actor.getCallerUserRole();
-    if (role === UserRole.guest) {
-      await actor.assignCallerUserRole(principal, UserRole.user);
-    }
+    await actor._initializeAccessControlWithSecret("");
   } catch {
-    // If role check fails, try to assign role anyway
-    try {
-      await actor.assignCallerUserRole(principal, UserRole.user);
-    } catch {
-      // best effort — might already be assigned
-    }
+    // Already registered or transient error — proceed anyway
   }
 }
 
-// ── Hooks ────────────────────────────────────────────────────────────────────
-
 export function useBackendTemplates() {
   const { actor, isFetching: actorFetching } = useActor();
-  const { isAuthenticated, identity } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery<WorkoutTemplate[]>({
     queryKey: BACKEND_TEMPLATES_KEY,
     queryFn: async () => {
-      if (!actor || !identity) return [];
+      if (!actor) return [];
       try {
-        await ensureUserRole(
-          actor as Parameters<typeof ensureUserRole>[0],
-          identity.getPrincipal(),
-        );
+        await ensureRegistered(actor as Parameters<typeof ensureRegistered>[0]);
         const views = await actor.getAllWorkoutTemplates();
         return views.map(mapBackendTemplate);
       } catch {
@@ -119,10 +98,7 @@ export function useCreateBackendTemplate() {
       exercises: TemplateExercise[];
     }) => {
       if (!actor || !identity) throw new Error("Not authenticated");
-      await ensureUserRole(
-        actor as Parameters<typeof ensureUserRole>[0],
-        identity.getPrincipal(),
-      );
+      await ensureRegistered(actor as Parameters<typeof ensureRegistered>[0]);
       const ok = await actor.createWorkoutTemplate({
         name,
         exercises: exercises.map(mapToBackendExercise),
@@ -142,14 +118,9 @@ export function useUpdateBackendTemplateName() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      name,
-    }: {
-      id: string;
-      name: string;
-    }) => {
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
       if (!actor) throw new Error("Not authenticated");
+      await ensureRegistered(actor as Parameters<typeof ensureRegistered>[0]);
       await actor.updateTemplateName(BigInt(id), name);
     },
     onSuccess: () => {
@@ -165,6 +136,7 @@ export function useDeleteBackendTemplate() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error("Not authenticated");
+      await ensureRegistered(actor as Parameters<typeof ensureRegistered>[0]);
       await actor.deleteTemplate(BigInt(id));
       return id;
     },
@@ -174,11 +146,6 @@ export function useDeleteBackendTemplate() {
   });
 }
 
-/**
- * Rebuilds the exercise list for a template:
- * deletes the old template and creates a new one with the updated exercises.
- * Returns the new template id.
- */
 export function useRebuildBackendTemplateExercises() {
   const { actor } = useActor();
   const { identity } = useAuth();
@@ -195,18 +162,16 @@ export function useRebuildBackendTemplateExercises() {
       exercises: TemplateExercise[];
     }): Promise<{ newId: string }> => {
       if (!actor || !identity) throw new Error("Not authenticated");
+      await ensureRegistered(actor as Parameters<typeof ensureRegistered>[0]);
 
-      // Delete the old template
       await actor.deleteTemplate(BigInt(id));
 
-      // Recreate with updated exercises
       await actor.createWorkoutTemplate({
         name,
         exercises: exercises.map(mapToBackendExercise),
         days: [],
       });
 
-      // Find the new template ID (most recently created)
       const views = await actor.getAllWorkoutTemplates();
       const newest = views.find((v) => v.template.name === name);
       const newId = newest ? newest.id.toString() : id;
