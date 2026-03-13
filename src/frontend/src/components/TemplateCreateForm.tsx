@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useActor } from "@/hooks/useActor";
 import { useAuth } from "@/hooks/useAuth";
+import { useSmartCreateLog } from "@/hooks/useSmartLogs";
 import { useSmartCreateTemplate } from "@/hooks/useSmartTemplates";
 import type { TemplateExercise } from "@/utils/localStorageTemplates";
 import { Loader2, Plus, Trash2 } from "lucide-react";
@@ -52,6 +53,7 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
     defaultExercise(),
   ]);
   const createTemplate = useSmartCreateTemplate();
+  const createLog = useSmartCreateLog();
   const { actor, isFetching: actorLoading } = useActor();
   const { isAuthenticated } = useAuth();
 
@@ -112,6 +114,29 @@ export default function TemplateCreateForm({ onCancel, onCreated }: Props) {
 
     try {
       await createTemplate.mutateAsync({ name, exercises: exercisesPayload });
+
+      // Create a corresponding workout log entry
+      // - Authenticated: creates a backend log via the API
+      // - Not authenticated: no-op (localStorageTemplates.ts auto-creates local logs)
+      if (isAuthenticated) {
+        try {
+          await createLog.mutateAsync({
+            templateId: name, // Use name as placeholder; templateId is metadata only
+            templateName: name,
+            exercises: exercisesPayload.map((ex) => ({
+              ...ex,
+              actualSets: null,
+              actualReps: null,
+              actualWeight: null,
+              actualTime: null,
+              notes: "",
+            })),
+          });
+        } catch {
+          // Non-fatal: template created successfully; log creation failure shouldn't block
+        }
+      }
+
       toast.success("Template created!");
       setTemplateName("");
       setExercises([defaultExercise()]);

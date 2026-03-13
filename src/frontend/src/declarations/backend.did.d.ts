@@ -30,6 +30,18 @@ export interface Exercise {
 }
 export type ExerciseId = bigint;
 export type LogEntryId = bigint;
+export interface LogExercise {
+  'plannedReps' : bigint,
+  'plannedSets' : bigint,
+  'plannedTime' : bigint,
+  'name' : string,
+  'plannedWeight' : bigint,
+  'actualReps' : [] | [bigint],
+  'actualSets' : [] | [bigint],
+  'actualTime' : [] | [bigint],
+  'notes' : string,
+  'actualWeight' : [] | [bigint],
+}
 export interface Phase { 'id' : PhaseId, 'owner' : Principal, 'name' : string }
 export interface PhaseExercise {
   'id' : ExerciseId,
@@ -56,6 +68,14 @@ export interface UserWorkoutTemplateView {
 }
 export type WeightUnit = { 'kg' : null } |
   { 'lbs' : null };
+export interface WorkoutLogView {
+  'id' : bigint,
+  'completedAt' : [] | [Time],
+  'templateId' : string,
+  'createdAt' : Time,
+  'exercises' : Array<LogExercise>,
+  'templateName' : string,
+}
 export interface WorkoutSession {
   'day' : DayOfWeek,
   'weight' : bigint,
@@ -78,10 +98,16 @@ export interface _SERVICE {
   'addWorkout' : ActorMethod<[WorkoutSession], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createPhase' : ActorMethod<[string], PhaseId>,
+  'createWorkoutLog' : ActorMethod<
+    [string, string, Array<LogExercise>],
+    bigint
+  >,
   'createWorkoutTemplate' : ActorMethod<[WorkoutTemplateView], boolean>,
   'deletePhase' : ActorMethod<[PhaseId], boolean>,
   'deleteTemplate' : ActorMethod<[bigint], [] | [string]>,
+  'deleteWorkoutLog' : ActorMethod<[bigint], boolean>,
   'getAllPhases' : ActorMethod<[], Array<Phase>>,
+  'getAllWorkoutLogs' : ActorMethod<[], Array<WorkoutLogView>>,
   'getAllWorkoutTemplates' : ActorMethod<[], Array<UserWorkoutTemplateView>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -101,9 +127,14 @@ export interface _SERVICE {
   >,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'logExercise' : ActorMethod<[ExerciseId, bigint, bigint, bigint], LogEntryId>,
+  'markWorkoutLogComplete' : ActorMethod<[bigint], [] | [string]>,
   'removeExercise' : ActorMethod<[ExerciseId], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'updateTemplateName' : ActorMethod<[bigint, string], [] | [string]>,
+  'updateWorkoutLogActuals' : ActorMethod<
+    [bigint, Array<LogExercise>],
+    [] | [string]
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

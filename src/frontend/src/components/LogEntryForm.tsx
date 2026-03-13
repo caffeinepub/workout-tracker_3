@@ -4,7 +4,10 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, CheckCircle2, Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useMarkLogComplete, useUpdateLocalLog } from "../hooks/useLocalLogs";
+import {
+  useSmartMarkLogComplete,
+  useSmartUpdateLog,
+} from "../hooks/useSmartLogs";
 import type { LogExercise, WorkoutLog } from "../utils/localStorageLogs";
 
 interface Props {
@@ -16,8 +19,8 @@ export default function LogEntryForm({ log, onBack }: Props) {
   const [exercises, setExercises] = useState<LogExercise[]>(
     log.exercises.map((ex) => ({ ...ex, notes: ex.notes ?? "" })),
   );
-  const updateMutation = useUpdateLocalLog();
-  const completeMutation = useMarkLogComplete();
+  const updateMutation = useSmartUpdateLog();
+  const completeMutation = useSmartMarkLogComplete();
 
   // Sync if log prop changes (e.g. after save)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally sync on id change only
@@ -95,6 +98,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
           size="icon"
           onClick={onBack}
           className="mt-0.5 shrink-0"
+          data-ocid="log.back.button"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -137,6 +141,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
                   ? "border-green-500/40 bg-green-500/5"
                   : "border-border bg-card"
               }`}
+              data-ocid={`log.exercise.item.${idx + 1}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-semibold text-sm">{ex.name}</h3>
@@ -274,6 +279,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
             variant="outline"
             onClick={handleSave}
             disabled={updateMutation.isPending || completeMutation.isPending}
+            data-ocid="log.save.button"
           >
             {updateMutation.isPending ? (
               <>
@@ -291,6 +297,7 @@ export default function LogEntryForm({ log, onBack }: Props) {
             onClick={handleComplete}
             disabled={updateMutation.isPending || completeMutation.isPending}
             className="bg-green-600 hover:bg-green-700 text-white"
+            data-ocid="log.complete.button"
           >
             {completeMutation.isPending ? (
               <>

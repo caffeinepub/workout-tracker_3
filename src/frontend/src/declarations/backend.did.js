@@ -51,6 +51,18 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const LogExercise = IDL.Record({
+  'plannedReps' : IDL.Nat,
+  'plannedSets' : IDL.Nat,
+  'plannedTime' : IDL.Nat,
+  'name' : IDL.Text,
+  'plannedWeight' : IDL.Nat,
+  'actualReps' : IDL.Opt(IDL.Nat),
+  'actualSets' : IDL.Opt(IDL.Nat),
+  'actualTime' : IDL.Opt(IDL.Nat),
+  'notes' : IDL.Text,
+  'actualWeight' : IDL.Opt(IDL.Nat),
+});
 export const WorkoutTemplateView = IDL.Record({
   'days' : IDL.Vec(DayOfWeek),
   'name' : IDL.Text,
@@ -60,6 +72,14 @@ export const Phase = IDL.Record({
   'id' : PhaseId,
   'owner' : IDL.Principal,
   'name' : IDL.Text,
+});
+export const WorkoutLogView = IDL.Record({
+  'id' : IDL.Nat,
+  'completedAt' : IDL.Opt(Time),
+  'templateId' : IDL.Text,
+  'createdAt' : Time,
+  'exercises' : IDL.Vec(LogExercise),
+  'templateName' : IDL.Text,
 });
 export const UserWorkoutTemplateView = IDL.Record({
   'id' : IDL.Nat,
@@ -92,10 +112,17 @@ export const idlService = IDL.Service({
   'addWorkout' : IDL.Func([WorkoutSession], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createPhase' : IDL.Func([IDL.Text], [PhaseId], []),
+  'createWorkoutLog' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Vec(LogExercise)],
+      [IDL.Nat],
+      [],
+    ),
   'createWorkoutTemplate' : IDL.Func([WorkoutTemplateView], [IDL.Bool], []),
   'deletePhase' : IDL.Func([PhaseId], [IDL.Bool], []),
   'deleteTemplate' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], []),
+  'deleteWorkoutLog' : IDL.Func([IDL.Nat], [IDL.Bool], []),
   'getAllPhases' : IDL.Func([], [IDL.Vec(Phase)], ['query']),
+  'getAllWorkoutLogs' : IDL.Func([], [IDL.Vec(WorkoutLogView)], ['query']),
   'getAllWorkoutTemplates' : IDL.Func(
       [],
       [IDL.Vec(UserWorkoutTemplateView)],
@@ -145,9 +172,15 @@ export const idlService = IDL.Service({
       [LogEntryId],
       [],
     ),
+  'markWorkoutLogComplete' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], []),
   'removeExercise' : IDL.Func([ExerciseId], [IDL.Bool], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateTemplateName' : IDL.Func([IDL.Nat, IDL.Text], [IDL.Opt(IDL.Text)], []),
+  'updateWorkoutLogActuals' : IDL.Func(
+      [IDL.Nat, IDL.Vec(LogExercise)],
+      [IDL.Opt(IDL.Text)],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -193,6 +226,18 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const LogExercise = IDL.Record({
+    'plannedReps' : IDL.Nat,
+    'plannedSets' : IDL.Nat,
+    'plannedTime' : IDL.Nat,
+    'name' : IDL.Text,
+    'plannedWeight' : IDL.Nat,
+    'actualReps' : IDL.Opt(IDL.Nat),
+    'actualSets' : IDL.Opt(IDL.Nat),
+    'actualTime' : IDL.Opt(IDL.Nat),
+    'notes' : IDL.Text,
+    'actualWeight' : IDL.Opt(IDL.Nat),
+  });
   const WorkoutTemplateView = IDL.Record({
     'days' : IDL.Vec(DayOfWeek),
     'name' : IDL.Text,
@@ -202,6 +247,14 @@ export const idlFactory = ({ IDL }) => {
     'id' : PhaseId,
     'owner' : IDL.Principal,
     'name' : IDL.Text,
+  });
+  const WorkoutLogView = IDL.Record({
+    'id' : IDL.Nat,
+    'completedAt' : IDL.Opt(Time),
+    'templateId' : IDL.Text,
+    'createdAt' : Time,
+    'exercises' : IDL.Vec(LogExercise),
+    'templateName' : IDL.Text,
   });
   const UserWorkoutTemplateView = IDL.Record({
     'id' : IDL.Nat,
@@ -234,10 +287,17 @@ export const idlFactory = ({ IDL }) => {
     'addWorkout' : IDL.Func([WorkoutSession], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createPhase' : IDL.Func([IDL.Text], [PhaseId], []),
+    'createWorkoutLog' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Vec(LogExercise)],
+        [IDL.Nat],
+        [],
+      ),
     'createWorkoutTemplate' : IDL.Func([WorkoutTemplateView], [IDL.Bool], []),
     'deletePhase' : IDL.Func([PhaseId], [IDL.Bool], []),
     'deleteTemplate' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], []),
+    'deleteWorkoutLog' : IDL.Func([IDL.Nat], [IDL.Bool], []),
     'getAllPhases' : IDL.Func([], [IDL.Vec(Phase)], ['query']),
+    'getAllWorkoutLogs' : IDL.Func([], [IDL.Vec(WorkoutLogView)], ['query']),
     'getAllWorkoutTemplates' : IDL.Func(
         [],
         [IDL.Vec(UserWorkoutTemplateView)],
@@ -287,10 +347,16 @@ export const idlFactory = ({ IDL }) => {
         [LogEntryId],
         [],
       ),
+    'markWorkoutLogComplete' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], []),
     'removeExercise' : IDL.Func([ExerciseId], [IDL.Bool], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateTemplateName' : IDL.Func(
         [IDL.Nat, IDL.Text],
+        [IDL.Opt(IDL.Text)],
+        [],
+      ),
+    'updateWorkoutLogActuals' : IDL.Func(
+        [IDL.Nat, IDL.Vec(LogExercise)],
         [IDL.Opt(IDL.Text)],
         [],
       ),

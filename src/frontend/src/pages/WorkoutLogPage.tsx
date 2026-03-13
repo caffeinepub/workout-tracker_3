@@ -19,19 +19,23 @@ import {
   Dumbbell,
   Filter,
   Loader2,
+  Lock,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import LogEntryForm from "../components/LogEntryForm";
-import { useDeleteLocalLog, useLocalLogs } from "../hooks/useLocalLogs";
+import LoginButton from "../components/LoginButton";
+import { useAuth } from "../hooks/useAuth";
+import { useSmartDeleteLog, useSmartLogs } from "../hooks/useSmartLogs";
 import type { WorkoutLog } from "../utils/localStorageLogs";
 
 type FilterType = "all" | "incomplete" | "completed";
 
 export default function WorkoutLogPage() {
-  const { data: logs = [], isLoading } = useLocalLogs();
-  const deleteMutation = useDeleteLocalLog();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { data: logs = [], isLoading } = useSmartLogs();
+  const deleteMutation = useSmartDeleteLog();
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
 
@@ -64,9 +68,47 @@ export default function WorkoutLogPage() {
     });
   };
 
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div
+        className="flex items-center justify-center py-20"
+        data-ocid="workoutlog.loading_state"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Login gate: require authentication to view logs
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-md">
+        <Card data-ocid="workoutlog.login.card">
+          <CardContent className="pt-10 pb-10 flex flex-col items-center text-center gap-6">
+            <div className="bg-muted/50 rounded-full w-16 h-16 flex items-center justify-center">
+              <Lock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">Sign in to view your logs</h2>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                Your workout logs are synced to your account. Sign in with
+                Internet Identity to access your logs on any device.
+              </p>
+            </div>
+            <LoginButton />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div
+        className="flex items-center justify-center py-20"
+        data-ocid="workoutlog.loading_state"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -130,6 +172,7 @@ export default function WorkoutLogPage() {
               size="sm"
               onClick={() => setFilter(f)}
               className="capitalize"
+              data-ocid="workoutlog.filter.tab"
             >
               {f}
             </Button>
@@ -139,7 +182,10 @@ export default function WorkoutLogPage() {
 
       {/* Log List */}
       {sortedLogs.length === 0 ? (
-        <div className="text-center py-16 space-y-4">
+        <div
+          className="text-center py-16 space-y-4"
+          data-ocid="workoutlog.empty_state"
+        >
           <div className="bg-muted/40 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
             <ClipboardList className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -156,7 +202,7 @@ export default function WorkoutLogPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedLogs.map((log) => {
+          {sortedLogs.map((log, idx) => {
             const isCompleted = !!log.completedAt;
             const loggedCount = log.exercises.filter(
               (ex) => ex.actualSets !== null && ex.actualReps !== null,
@@ -171,6 +217,7 @@ export default function WorkoutLogPage() {
                     : "hover:border-primary/50"
                 }`}
                 onClick={() => setSelectedLog(log)}
+                data-ocid={`workoutlog.item.${idx + 1}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -243,11 +290,12 @@ export default function WorkoutLogPage() {
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => e.stopPropagation()}
+                            data-ocid={`workoutlog.delete_button.${idx + 1}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent data-ocid="workoutlog.delete.dialog">
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete Log?</AlertDialogTitle>
                             <AlertDialogDescription>
@@ -256,12 +304,15 @@ export default function WorkoutLogPage() {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel data-ocid="workoutlog.delete.cancel_button">
+                              Cancel
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               onClick={(e) =>
                                 handleDelete(log.id, log.templateName, e)
                               }
+                              data-ocid="workoutlog.delete.confirm_button"
                             >
                               Delete
                             </AlertDialogAction>

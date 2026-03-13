@@ -106,6 +106,14 @@ export interface PhaseExerciseLog {
     sets: bigint;
 }
 export type Time = bigint;
+export interface WorkoutLogView {
+    id: bigint;
+    completedAt?: Time;
+    templateId: string;
+    createdAt: Time;
+    exercises: Array<LogExercise>;
+    templateName: string;
+}
 export interface WorkoutSession {
     day: DayOfWeek;
     weight: bigint;
@@ -130,6 +138,18 @@ export interface Phase {
     id: PhaseId;
     owner: Principal;
     name: string;
+}
+export interface LogExercise {
+    plannedReps: bigint;
+    plannedSets: bigint;
+    plannedTime: bigint;
+    name: string;
+    plannedWeight: bigint;
+    actualReps?: bigint;
+    actualSets?: bigint;
+    actualTime?: bigint;
+    notes: string;
+    actualWeight?: bigint;
 }
 export type ExerciseId = bigint;
 export interface WorkoutTemplateView {
@@ -175,10 +195,13 @@ export interface backendInterface {
     addWorkout(session: WorkoutSession): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createPhase(name: string): Promise<PhaseId>;
+    createWorkoutLog(templateId: string, templateName: string, exercises: Array<LogExercise>): Promise<bigint>;
     createWorkoutTemplate(template: WorkoutTemplateView): Promise<boolean>;
     deletePhase(phaseId: PhaseId): Promise<boolean>;
     deleteTemplate(templateId: bigint): Promise<string | null>;
+    deleteWorkoutLog(logId: bigint): Promise<boolean>;
     getAllPhases(): Promise<Array<Phase>>;
+    getAllWorkoutLogs(): Promise<Array<WorkoutLogView>>;
     getAllWorkoutTemplates(): Promise<Array<UserWorkoutTemplateView>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -192,11 +215,13 @@ export interface backendInterface {
     getWorkoutTemplatesByDay(day: DayOfWeek): Promise<Array<UserWorkoutTemplateView>>;
     isCallerAdmin(): Promise<boolean>;
     logExercise(exerciseId: ExerciseId, sets: bigint, reps: bigint, weight: bigint): Promise<LogEntryId>;
+    markWorkoutLogComplete(logId: bigint): Promise<string | null>;
     removeExercise(exerciseId: ExerciseId): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateTemplateName(templateId: bigint, newName: string): Promise<string | null>;
+    updateWorkoutLogActuals(logId: bigint, exercises: Array<LogExercise>): Promise<string | null>;
 }
-import type { DayOfWeek as _DayOfWeek, Duration as _Duration, DurationUnit as _DurationUnit, Exercise as _Exercise, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, UserWorkoutTemplateView as _UserWorkoutTemplateView, WeightUnit as _WeightUnit, WorkoutSession as _WorkoutSession, WorkoutTemplateView as _WorkoutTemplateView } from "./declarations/backend.did.d.ts";
+import type { DayOfWeek as _DayOfWeek, Duration as _Duration, DurationUnit as _DurationUnit, Exercise as _Exercise, LogExercise as _LogExercise, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, UserWorkoutTemplateView as _UserWorkoutTemplateView, WeightUnit as _WeightUnit, WorkoutLogView as _WorkoutLogView, WorkoutSession as _WorkoutSession, WorkoutTemplateView as _WorkoutTemplateView } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -283,17 +308,31 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createWorkoutTemplate(arg0: WorkoutTemplateView): Promise<boolean> {
+    async createWorkoutLog(arg0: string, arg1: string, arg2: Array<LogExercise>): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.createWorkoutTemplate(to_candid_WorkoutTemplateView_n13(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.createWorkoutLog(arg0, arg1, to_candid_vec_n13(this._uploadFile, this._downloadFile, arg2));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createWorkoutTemplate(to_candid_WorkoutTemplateView_n13(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.createWorkoutLog(arg0, arg1, to_candid_vec_n13(this._uploadFile, this._downloadFile, arg2));
+            return result;
+        }
+    }
+    async createWorkoutTemplate(arg0: WorkoutTemplateView): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createWorkoutTemplate(to_candid_WorkoutTemplateView_n16(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createWorkoutTemplate(to_candid_WorkoutTemplateView_n16(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -315,14 +354,28 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.deleteTemplate(arg0);
-                return from_candid_opt_n17(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.deleteTemplate(arg0);
-            return from_candid_opt_n17(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async deleteWorkoutLog(arg0: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteWorkoutLog(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteWorkoutLog(arg0);
+            return result;
         }
     }
     async getAllPhases(): Promise<Array<Phase>> {
@@ -339,46 +392,60 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getAllWorkoutLogs(): Promise<Array<WorkoutLogView>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllWorkoutLogs();
+                return from_candid_vec_n21(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllWorkoutLogs();
+            return from_candid_vec_n21(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getAllWorkoutTemplates(): Promise<Array<UserWorkoutTemplateView>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllWorkoutTemplates();
-                return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllWorkoutTemplates();
-            return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n38(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n49(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n38(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n49(this._uploadFile, this._downloadFile, result);
         }
     }
     async getExerciseLogs(arg0: ExerciseId): Promise<Array<PhaseExerciseLog>> {
@@ -413,84 +480,84 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getOwnWorkoutHistory();
-                return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getOwnWorkoutHistory();
-            return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserWorkoutHistory(arg0: Principal): Promise<Array<WorkoutSession>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserWorkoutHistory(arg0);
-                return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserWorkoutHistory(arg0);
-            return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
         }
     }
     async getWorkoutSessionsByDateRange(arg0: Time, arg1: Time): Promise<Array<WorkoutSession>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getWorkoutSessionsByDateRange(arg0, arg1);
-                return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getWorkoutSessionsByDateRange(arg0, arg1);
-            return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
         }
     }
     async getWorkoutSessionsByDay(arg0: DayOfWeek): Promise<Array<WorkoutSession>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getWorkoutSessionsByDay(to_candid_DayOfWeek_n9(this._uploadFile, this._downloadFile, arg0));
-                return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getWorkoutSessionsByDay(to_candid_DayOfWeek_n9(this._uploadFile, this._downloadFile, arg0));
-            return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n51(this._uploadFile, this._downloadFile, result);
         }
     }
     async getWorkoutTemplatesByDay(arg0: DayOfWeek): Promise<Array<UserWorkoutTemplateView>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getWorkoutTemplatesByDay(to_candid_DayOfWeek_n9(this._uploadFile, this._downloadFile, arg0));
-                return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getWorkoutTemplatesByDay(to_candid_DayOfWeek_n9(this._uploadFile, this._downloadFile, arg0));
-            return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -521,6 +588,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async markWorkoutLogComplete(arg0: bigint): Promise<string | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.markWorkoutLogComplete(arg0);
+                return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.markWorkoutLogComplete(arg0);
+            return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async removeExercise(arg0: ExerciseId): Promise<boolean> {
         if (this.processError) {
             try {
@@ -538,14 +619,14 @@ export class Backend implements backendInterface {
     async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n43(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n54(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n43(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n54(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -553,54 +634,140 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.updateTemplateName(arg0, arg1);
-                return from_candid_opt_n17(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.updateTemplateName(arg0, arg1);
-            return from_candid_opt_n17(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateWorkoutLogActuals(arg0: bigint, arg1: Array<LogExercise>): Promise<string | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateWorkoutLogActuals(arg0, to_candid_vec_n13(this._uploadFile, this._downloadFile, arg1));
+                return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateWorkoutLogActuals(arg0, to_candid_vec_n13(this._uploadFile, this._downloadFile, arg1));
+            return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
         }
     }
 }
-function from_candid_DayOfWeek_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DayOfWeek): DayOfWeek {
-    return from_candid_variant_n25(_uploadFile, _downloadFile, value);
+function from_candid_DayOfWeek_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DayOfWeek): DayOfWeek {
+    return from_candid_variant_n36(_uploadFile, _downloadFile, value);
 }
-function from_candid_DurationUnit_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DurationUnit): DurationUnit {
-    return from_candid_variant_n32(_uploadFile, _downloadFile, value);
+function from_candid_DurationUnit_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DurationUnit): DurationUnit {
+    return from_candid_variant_n43(_uploadFile, _downloadFile, value);
 }
-function from_candid_Duration_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Duration): Duration {
-    return from_candid_record_n30(_uploadFile, _downloadFile, value);
+function from_candid_Duration_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Duration): Duration {
+    return from_candid_record_n41(_uploadFile, _downloadFile, value);
 }
-function from_candid_Exercise_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Exercise): Exercise {
-    return from_candid_record_n28(_uploadFile, _downloadFile, value);
+function from_candid_Exercise_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Exercise): Exercise {
+    return from_candid_record_n39(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfile_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
-    return from_candid_record_n35(_uploadFile, _downloadFile, value);
+function from_candid_LogExercise_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LogExercise): LogExercise {
+    return from_candid_record_n27(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n39(_uploadFile, _downloadFile, value);
+function from_candid_UserProfile_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
+    return from_candid_record_n46(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserWorkoutTemplateView_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserWorkoutTemplateView): UserWorkoutTemplateView {
-    return from_candid_record_n20(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n50(_uploadFile, _downloadFile, value);
 }
-function from_candid_WeightUnit_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WeightUnit): WeightUnit {
-    return from_candid_variant_n37(_uploadFile, _downloadFile, value);
+function from_candid_UserWorkoutTemplateView_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserWorkoutTemplateView): UserWorkoutTemplateView {
+    return from_candid_record_n31(_uploadFile, _downloadFile, value);
 }
-function from_candid_WorkoutSession_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WorkoutSession): WorkoutSession {
-    return from_candid_record_n42(_uploadFile, _downloadFile, value);
+function from_candid_WeightUnit_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WeightUnit): WeightUnit {
+    return from_candid_variant_n48(_uploadFile, _downloadFile, value);
 }
-function from_candid_WorkoutTemplateView_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WorkoutTemplateView): WorkoutTemplateView {
-    return from_candid_record_n22(_uploadFile, _downloadFile, value);
+function from_candid_WorkoutLogView_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WorkoutLogView): WorkoutLogView {
+    return from_candid_record_n23(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+function from_candid_WorkoutSession_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WorkoutSession): WorkoutSession {
+    return from_candid_record_n53(_uploadFile, _downloadFile, value);
+}
+function from_candid_WorkoutTemplateView_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WorkoutTemplateView): WorkoutTemplateView {
+    return from_candid_record_n33(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
-    return value.length === 0 ? null : from_candid_UserProfile_n34(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Time]): Time | null {
+    return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_opt_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+    return value.length === 0 ? null : from_candid_UserProfile_n45(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_record_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    completedAt: [] | [_Time];
+    templateId: string;
+    createdAt: _Time;
+    exercises: Array<_LogExercise>;
+    templateName: string;
+}): {
+    id: bigint;
+    completedAt?: Time;
+    templateId: string;
+    createdAt: Time;
+    exercises: Array<LogExercise>;
+    templateName: string;
+} {
+    return {
+        id: value.id,
+        completedAt: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.completedAt)),
+        templateId: value.templateId,
+        createdAt: value.createdAt,
+        exercises: from_candid_vec_n25(_uploadFile, _downloadFile, value.exercises),
+        templateName: value.templateName
+    };
+}
+function from_candid_record_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    plannedReps: bigint;
+    plannedSets: bigint;
+    plannedTime: bigint;
+    name: string;
+    plannedWeight: bigint;
+    actualReps: [] | [bigint];
+    actualSets: [] | [bigint];
+    actualTime: [] | [bigint];
+    notes: string;
+    actualWeight: [] | [bigint];
+}): {
+    plannedReps: bigint;
+    plannedSets: bigint;
+    plannedTime: bigint;
+    name: string;
+    plannedWeight: bigint;
+    actualReps?: bigint;
+    actualSets?: bigint;
+    actualTime?: bigint;
+    notes: string;
+    actualWeight?: bigint;
+} {
+    return {
+        plannedReps: value.plannedReps,
+        plannedSets: value.plannedSets,
+        plannedTime: value.plannedTime,
+        name: value.name,
+        plannedWeight: value.plannedWeight,
+        actualReps: record_opt_to_undefined(from_candid_opt_n28(_uploadFile, _downloadFile, value.actualReps)),
+        actualSets: record_opt_to_undefined(from_candid_opt_n28(_uploadFile, _downloadFile, value.actualSets)),
+        actualTime: record_opt_to_undefined(from_candid_opt_n28(_uploadFile, _downloadFile, value.actualTime)),
+        notes: value.notes,
+        actualWeight: record_opt_to_undefined(from_candid_opt_n28(_uploadFile, _downloadFile, value.actualWeight))
+    };
+}
+function from_candid_record_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     template: _WorkoutTemplateView;
 }): {
@@ -609,10 +776,10 @@ function from_candid_record_n20(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         id: value.id,
-        template: from_candid_WorkoutTemplateView_n21(_uploadFile, _downloadFile, value.template)
+        template: from_candid_WorkoutTemplateView_n32(_uploadFile, _downloadFile, value.template)
     };
 }
-function from_candid_record_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     days: Array<_DayOfWeek>;
     name: string;
     exercises: Array<_Exercise>;
@@ -622,12 +789,12 @@ function from_candid_record_n22(_uploadFile: (file: ExternalBlob) => Promise<Uin
     exercises: Array<Exercise>;
 } {
     return {
-        days: from_candid_vec_n23(_uploadFile, _downloadFile, value.days),
+        days: from_candid_vec_n34(_uploadFile, _downloadFile, value.days),
         name: value.name,
-        exercises: from_candid_vec_n26(_uploadFile, _downloadFile, value.exercises)
+        exercises: from_candid_vec_n37(_uploadFile, _downloadFile, value.exercises)
     };
 }
-function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     weight: bigint;
     duration: _Duration;
     name: string;
@@ -644,14 +811,14 @@ function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         weight: value.weight,
-        duration: from_candid_Duration_n29(_uploadFile, _downloadFile, value.duration),
+        duration: from_candid_Duration_n40(_uploadFile, _downloadFile, value.duration),
         name: value.name,
         reps: value.reps,
         sets: value.sets,
         notes: value.notes
     };
 }
-function from_candid_record_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     value: bigint;
     unit: _DurationUnit;
 }): {
@@ -660,10 +827,10 @@ function from_candid_record_n30(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         value: value.value,
-        unit: from_candid_DurationUnit_n31(_uploadFile, _downloadFile, value.unit)
+        unit: from_candid_DurationUnit_n42(_uploadFile, _downloadFile, value.unit)
     };
 }
-function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
     weightUnit: _WeightUnit;
 }): {
@@ -672,10 +839,10 @@ function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         name: value.name,
-        weightUnit: from_candid_WeightUnit_n36(_uploadFile, _downloadFile, value.weightUnit)
+        weightUnit: from_candid_WeightUnit_n47(_uploadFile, _downloadFile, value.weightUnit)
     };
 }
-function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n53(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     day: _DayOfWeek;
     weight: bigint;
     duration: bigint;
@@ -695,7 +862,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
     exerciseName: string;
 } {
     return {
-        day: from_candid_DayOfWeek_n24(_uploadFile, _downloadFile, value.day),
+        day: from_candid_DayOfWeek_n35(_uploadFile, _downloadFile, value.day),
         weight: value.weight,
         duration: value.duration,
         date: value.date,
@@ -705,7 +872,7 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
         exerciseName: value.exerciseName
     };
 }
-function from_candid_variant_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     tuesday: null;
 } | {
     wednesday: null;
@@ -722,21 +889,21 @@ function from_candid_variant_n25(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): DayOfWeek {
     return "tuesday" in value ? DayOfWeek.tuesday : "wednesday" in value ? DayOfWeek.wednesday : "saturday" in value ? DayOfWeek.saturday : "thursday" in value ? DayOfWeek.thursday : "sunday" in value ? DayOfWeek.sunday : "friday" in value ? DayOfWeek.friday : "monday" in value ? DayOfWeek.monday : value;
 }
-function from_candid_variant_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     minutes: null;
 } | {
     seconds: null;
 }): DurationUnit {
     return "minutes" in value ? DurationUnit.minutes : "seconds" in value ? DurationUnit.seconds : value;
 }
-function from_candid_variant_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     kg: null;
 } | {
     lbs: null;
 }): WeightUnit {
     return "kg" in value ? WeightUnit.kg : "lbs" in value ? WeightUnit.lbs : value;
 }
-function from_candid_variant_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -745,17 +912,23 @@ function from_candid_variant_n39(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_vec_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UserWorkoutTemplateView>): Array<UserWorkoutTemplateView> {
-    return value.map((x)=>from_candid_UserWorkoutTemplateView_n19(_uploadFile, _downloadFile, x));
+function from_candid_vec_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_WorkoutLogView>): Array<WorkoutLogView> {
+    return value.map((x)=>from_candid_WorkoutLogView_n22(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_DayOfWeek>): Array<DayOfWeek> {
-    return value.map((x)=>from_candid_DayOfWeek_n24(_uploadFile, _downloadFile, x));
+function from_candid_vec_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_LogExercise>): Array<LogExercise> {
+    return value.map((x)=>from_candid_LogExercise_n26(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Exercise>): Array<Exercise> {
-    return value.map((x)=>from_candid_Exercise_n27(_uploadFile, _downloadFile, x));
+function from_candid_vec_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UserWorkoutTemplateView>): Array<UserWorkoutTemplateView> {
+    return value.map((x)=>from_candid_UserWorkoutTemplateView_n30(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_WorkoutSession>): Array<WorkoutSession> {
-    return value.map((x)=>from_candid_WorkoutSession_n41(_uploadFile, _downloadFile, x));
+function from_candid_vec_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_DayOfWeek>): Array<DayOfWeek> {
+    return value.map((x)=>from_candid_DayOfWeek_n35(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Exercise>): Array<Exercise> {
+    return value.map((x)=>from_candid_Exercise_n38(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_WorkoutSession>): Array<WorkoutSession> {
+    return value.map((x)=>from_candid_WorkoutSession_n52(_uploadFile, _downloadFile, x));
 }
 function to_candid_DayOfWeek_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: DayOfWeek): _DayOfWeek {
     return to_candid_variant_n10(_uploadFile, _downloadFile, value);
@@ -769,22 +942,61 @@ function to_candid_Duration_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint
 function to_candid_Exercise_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Exercise): _Exercise {
     return to_candid_record_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_UserProfile_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
-    return to_candid_record_n44(_uploadFile, _downloadFile, value);
+function to_candid_LogExercise_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LogExercise): _LogExercise {
+    return to_candid_record_n15(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserProfile_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
+    return to_candid_record_n55(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n12(_uploadFile, _downloadFile, value);
 }
-function to_candid_WeightUnit_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WeightUnit): _WeightUnit {
-    return to_candid_variant_n46(_uploadFile, _downloadFile, value);
+function to_candid_WeightUnit_n56(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WeightUnit): _WeightUnit {
+    return to_candid_variant_n57(_uploadFile, _downloadFile, value);
 }
 function to_candid_WorkoutSession_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WorkoutSession): _WorkoutSession {
     return to_candid_record_n8(_uploadFile, _downloadFile, value);
 }
-function to_candid_WorkoutTemplateView_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WorkoutTemplateView): _WorkoutTemplateView {
-    return to_candid_record_n14(_uploadFile, _downloadFile, value);
+function to_candid_WorkoutTemplateView_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WorkoutTemplateView): _WorkoutTemplateView {
+    return to_candid_record_n17(_uploadFile, _downloadFile, value);
 }
-function to_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_record_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    plannedReps: bigint;
+    plannedSets: bigint;
+    plannedTime: bigint;
+    name: string;
+    plannedWeight: bigint;
+    actualReps?: bigint;
+    actualSets?: bigint;
+    actualTime?: bigint;
+    notes: string;
+    actualWeight?: bigint;
+}): {
+    plannedReps: bigint;
+    plannedSets: bigint;
+    plannedTime: bigint;
+    name: string;
+    plannedWeight: bigint;
+    actualReps: [] | [bigint];
+    actualSets: [] | [bigint];
+    actualTime: [] | [bigint];
+    notes: string;
+    actualWeight: [] | [bigint];
+} {
+    return {
+        plannedReps: value.plannedReps,
+        plannedSets: value.plannedSets,
+        plannedTime: value.plannedTime,
+        name: value.name,
+        plannedWeight: value.plannedWeight,
+        actualReps: value.actualReps ? candid_some(value.actualReps) : candid_none(),
+        actualSets: value.actualSets ? candid_some(value.actualSets) : candid_none(),
+        actualTime: value.actualTime ? candid_some(value.actualTime) : candid_none(),
+        notes: value.notes,
+        actualWeight: value.actualWeight ? candid_some(value.actualWeight) : candid_none()
+    };
+}
+function to_candid_record_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     days: Array<DayOfWeek>;
     name: string;
     exercises: Array<Exercise>;
@@ -794,9 +1006,9 @@ function to_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     exercises: Array<_Exercise>;
 } {
     return {
-        days: to_candid_vec_n15(_uploadFile, _downloadFile, value.days),
+        days: to_candid_vec_n18(_uploadFile, _downloadFile, value.days),
         name: value.name,
-        exercises: to_candid_vec_n16(_uploadFile, _downloadFile, value.exercises)
+        exercises: to_candid_vec_n19(_uploadFile, _downloadFile, value.exercises)
     };
 }
 function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -835,7 +1047,7 @@ function to_candid_record_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
         unit: to_candid_DurationUnit_n5(_uploadFile, _downloadFile, value.unit)
     };
 }
-function to_candid_record_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_record_n55(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
     weightUnit: WeightUnit;
 }): {
@@ -844,7 +1056,7 @@ function to_candid_record_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8
 } {
     return {
         name: value.name,
-        weightUnit: to_candid_WeightUnit_n45(_uploadFile, _downloadFile, value.weightUnit)
+        weightUnit: to_candid_WeightUnit_n56(_uploadFile, _downloadFile, value.weightUnit)
     };
 }
 function to_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -923,7 +1135,7 @@ function to_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint
         guest: null
     } : value;
 }
-function to_candid_variant_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WeightUnit): {
+function to_candid_variant_n57(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: WeightUnit): {
     kg: null;
 } | {
     lbs: null;
@@ -945,10 +1157,13 @@ function to_candid_variant_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         seconds: null
     } : value;
 }
-function to_candid_vec_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<DayOfWeek>): Array<_DayOfWeek> {
+function to_candid_vec_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<LogExercise>): Array<_LogExercise> {
+    return value.map((x)=>to_candid_LogExercise_n14(_uploadFile, _downloadFile, x));
+}
+function to_candid_vec_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<DayOfWeek>): Array<_DayOfWeek> {
     return value.map((x)=>to_candid_DayOfWeek_n9(_uploadFile, _downloadFile, x));
 }
-function to_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<Exercise>): Array<_Exercise> {
+function to_candid_vec_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<Exercise>): Array<_Exercise> {
     return value.map((x)=>to_candid_Exercise_n1(_uploadFile, _downloadFile, x));
 }
 export interface CreateActorOptions {

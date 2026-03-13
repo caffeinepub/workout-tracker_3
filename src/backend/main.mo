@@ -9,12 +9,12 @@ import Order "mo:core/Order";
 import Principal "mo:core/Principal";
 import Result "mo:core/Result";
 
-
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
 // Apply migration function to transform actor state after upgrade
-
+(with migration = Migration.run)
 actor {
   type WeightUnit = {
     #lbs;
@@ -144,13 +144,46 @@ actor {
     template : WorkoutTemplateView;
   };
 
+  type LogExercise = {
+    name : Text;
+    plannedSets : Nat;
+    plannedReps : Nat;
+    plannedWeight : Nat;
+    plannedTime : Nat;
+    actualSets : ?Nat;
+    actualReps : ?Nat;
+    actualWeight : ?Nat;
+    actualTime : ?Nat;
+    notes : Text;
+  };
+
+  type WorkoutLogPersistent = {
+    id : Nat;
+    templateId : Text;
+    templateName : Text;
+    createdAt : Time.Time;
+    completedAt : ?Time.Time;
+    exercises : List.List<LogExercise>;
+  };
+
+  type WorkoutLogView = {
+    id : Nat;
+    templateId : Text;
+    templateName : Text;
+    createdAt : Time.Time;
+    completedAt : ?Time.Time;
+    exercises : [LogExercise];
+  };
+
   let userProfiles = Map.empty<Principal, UserProfile>();
   let userWorkouts = Map.empty<Principal, List.List<WorkoutSession>>();
   let workoutTemplates = Map.empty<Principal, List.List<UserWorkoutTemplatePersistent>>();
+  let workoutLogs = Map.empty<Principal, List.List<WorkoutLogPersistent>>();
   let phases = Map.empty<Principal, List.List<Phase>>();
   let phaseExercises = Map.empty<Principal, List.List<PhaseExercise>>();
   let exerciseLogs = Map.empty<Principal, List.List<PhaseExerciseLog>>();
   var nextTemplateId = 0;
+  var nextWorkoutLogId = 0;
   var nextPhaseId = 0;
   var nextExerciseId = 0;
   var nextLogEntryId = 0;
@@ -173,7 +206,6 @@ actor {
     };
   };
 
-  // User Profile Functions
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -195,7 +227,6 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Workout Functions
   public shared ({ caller }) func addWorkout(session : WorkoutSession) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add workouts");
@@ -260,7 +291,6 @@ actor {
     };
   };
 
-  // Workout Template Functions
   public shared ({ caller }) func createWorkoutTemplate(template : WorkoutTemplateView) : async Bool {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create templates");
@@ -351,7 +381,6 @@ actor {
     ).map<UserWorkoutTemplatePersistent, UserWorkoutTemplateView>(toUserWorkoutTemplateView).toArray();
   };
 
-  // New: Update Template Name
   public shared ({ caller }) func updateTemplateName(templateId : Nat, newName : Text) : async ?Text {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update templates");
@@ -387,7 +416,6 @@ actor {
     };
   };
 
-  // New: Delete Template
   public shared ({ caller }) func deleteTemplate(templateId : Nat) : async ?Text {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete templates");
@@ -411,7 +439,140 @@ actor {
     };
   };
 
-  // Phase Management Functions
+  public shared ({ caller }) func createWorkoutLog(
+    templateId : Text,
+    templateName : Text,
+    exercises : [LogExercise]
+  ) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create workout logs");
+    };
+
+    let workoutLog : WorkoutLogPersistent = {
+      id = nextWorkoutLogId;
+      templateId;
+      templateName;
+      createdAt = Time.now();
+      completedAt = null;
+      exercises = List.fromArray(exercises);
+    };
+
+    let currentLogs = switch (workoutLogs.get(caller)) {
+      case (null) { List.empty<WorkoutLogPersistent>() };
+      case (?logs) { logs };
+    };
+
+    currentLogs.add(workoutLog);
+    workoutLogs.add(caller, currentLogs);
+    let id = nextWorkoutLogId;
+    nextWorkoutLogId += 1;
+    id;
+  };
+
+  public query ({ caller }) func getAllWorkoutLogs() : async [WorkoutLogView] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get workout logs");
+    };
+
+    switch (workoutLogs.get(caller)) {
+      case (null) { [] };
+      case (?logs) {
+        logs.map<WorkoutLogPersistent, WorkoutLogView>(
+          func(persistentLog) {
+            {
+              persistentLog with
+              exercises = persistentLog.exercises.toArray();
+            };
+          }
+        ).toArray();
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateWorkoutLogActuals(
+    logId : Nat,
+    exercises : [LogExercise]
+  ) : async ?Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update workout logs");
+    };
+
+    let logsOpt = workoutLogs.get(caller);
+    switch (logsOpt) {
+      case (null) {
+        ?"No workout logs found for caller";
+      };
+      case (?logs) {
+        var logFound = false;
+        let updatedLogs = logs.map<WorkoutLogPersistent, WorkoutLogPersistent>(
+          func(log) {
+            if (log.id == logId) {
+              logFound := true;
+              {
+                log with exercises = List.fromArray(exercises);
+              };
+            } else { log };
+          }
+        );
+
+        if (logFound) {
+          workoutLogs.add(caller, updatedLogs);
+          null;
+        } else {
+          ?"Workout log not found";
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func markWorkoutLogComplete(logId : Nat) : async ?Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can mark workout logs complete");
+    };
+
+    let logsOpt = workoutLogs.get(caller);
+    switch (logsOpt) {
+      case (null) {
+        ?"No workout logs found for caller";
+      };
+      case (?logs) {
+        var logFound = false;
+        let updatedLogs = logs.map<WorkoutLogPersistent, WorkoutLogPersistent>(
+          func(log) {
+            if (log.id == logId) {
+              logFound := true;
+              {
+                log with completedAt = ?Time.now();
+              };
+            } else { log };
+          }
+        );
+
+        if (logFound) {
+          workoutLogs.add(caller, updatedLogs);
+          null;
+        } else {
+          ?"Workout log not found";
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteWorkoutLog(logId : Nat) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete workout logs");
+    };
+
+    switch (workoutLogs.get(caller)) {
+      case (null) { false };
+      case (?logs) {
+        let updatedLogs = logs.filter(func(log) { log.id != logId });
+        workoutLogs.add(caller, updatedLogs);
+        true;
+      };
+    };
+  };
+
   public shared ({ caller }) func createPhase(name : Text) : async PhaseId {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create phases");
@@ -461,7 +622,6 @@ actor {
     };
   };
 
-  // Phase Exercise Management Functions
   public shared ({ caller }) func addExerciseToPhase(phaseId : PhaseId, name : Text) : async ExerciseId {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add exercises to phases");
@@ -513,7 +673,6 @@ actor {
     };
   };
 
-  // Exercise Log Functions
   public shared ({ caller }) func logExercise(exerciseId : ExerciseId, sets : Nat, reps : Nat, weight : Nat) : async LogEntryId {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can log exercises");

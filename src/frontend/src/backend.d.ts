@@ -24,6 +24,14 @@ export interface PhaseExerciseLog {
     sets: bigint;
 }
 export type Time = bigint;
+export interface WorkoutLogView {
+    id: bigint;
+    completedAt?: Time;
+    templateId: string;
+    createdAt: Time;
+    exercises: Array<LogExercise>;
+    templateName: string;
+}
 export interface WorkoutSession {
     day: DayOfWeek;
     weight: bigint;
@@ -48,6 +56,18 @@ export interface Phase {
     id: PhaseId;
     owner: Principal;
     name: string;
+}
+export interface LogExercise {
+    plannedReps: bigint;
+    plannedSets: bigint;
+    plannedTime: bigint;
+    name: string;
+    plannedWeight: bigint;
+    actualReps?: bigint;
+    actualSets?: bigint;
+    actualTime?: bigint;
+    notes: string;
+    actualWeight?: bigint;
 }
 export type ExerciseId = bigint;
 export interface WorkoutTemplateView {
@@ -92,10 +112,13 @@ export interface backendInterface {
     addWorkout(session: WorkoutSession): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createPhase(name: string): Promise<PhaseId>;
+    createWorkoutLog(templateId: string, templateName: string, exercises: Array<LogExercise>): Promise<bigint>;
     createWorkoutTemplate(template: WorkoutTemplateView): Promise<boolean>;
     deletePhase(phaseId: PhaseId): Promise<boolean>;
     deleteTemplate(templateId: bigint): Promise<string | null>;
+    deleteWorkoutLog(logId: bigint): Promise<boolean>;
     getAllPhases(): Promise<Array<Phase>>;
+    getAllWorkoutLogs(): Promise<Array<WorkoutLogView>>;
     getAllWorkoutTemplates(): Promise<Array<UserWorkoutTemplateView>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -109,7 +132,9 @@ export interface backendInterface {
     getWorkoutTemplatesByDay(day: DayOfWeek): Promise<Array<UserWorkoutTemplateView>>;
     isCallerAdmin(): Promise<boolean>;
     logExercise(exerciseId: ExerciseId, sets: bigint, reps: bigint, weight: bigint): Promise<LogEntryId>;
+    markWorkoutLogComplete(logId: bigint): Promise<string | null>;
     removeExercise(exerciseId: ExerciseId): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateTemplateName(templateId: bigint, newName: string): Promise<string | null>;
+    updateWorkoutLogActuals(logId: bigint, exercises: Array<LogExercise>): Promise<string | null>;
 }
